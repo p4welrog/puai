@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spadek wzdłuż gradientu</title>
+<style>
+:root {
+  --ink: #1E1B2E; --muted: #6B6880; --paper: #FFFFFF; --field: #F4F3F8; --line: #E2E0EA;
+  --accent: #7C3AED; --accent-soft: #EDE7FD; --pos: #2563EB; --neg: #DC2626; --ok: #15803D; --warn: #B45309;
+  --r: 10px;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--field); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif; }
+a { color: var(--accent); }
+header.top { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; padding: 18px 28px 10px; }
+header.top h1 { margin: 0; font-size: 1.55rem; line-height: 1.2; letter-spacing: -0.01em; }
+header.top .crumb { color: var(--muted); font-size: 0.9rem; text-decoration: none; }
+header.top .crumb:hover { color: var(--accent); }
+header.top .lecture { margin-left: auto; color: var(--accent); font-weight: 600; font-size: 0.9rem; }
+main.app { display: grid; grid-template-columns: minmax(0, 1fr) 340px; grid-template-areas: "stage rail" "try rail"; gap: 18px; padding: 8px 28px 28px; align-items: start; }
+main.app > .stage { grid-area: stage; } main.app > .rail { grid-area: rail; } main.app > .tryit { grid-area: try; }
+.stage { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; min-width: 0; }
+.stage canvas.main { display: block; width: 100%; aspect-ratio: 4 / 3; max-height: 70vh; touch-action: none; border-radius: 6px; }
+.rail { display: flex; flex-direction: column; gap: 12px; }
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; }
+.panel h3 { margin: 0 0 10px; font-size: 0.98rem; }
+.panel p { margin: 6px 0; }
+.hint { color: var(--muted); font-size: 0.86rem; }
+/* równanie na żywo — główny akcent strony */
+.equation { margin-top: 12px; padding: 12px 16px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 6px 6px 0;
+  font-size: clamp(1.05rem, 1.8vw, 1.45rem); font-variant-numeric: tabular-nums; line-height: 1.45; overflow-x: auto; white-space: nowrap; }
+.equation .sub { display: block; font-size: 0.68em; color: var(--muted); white-space: normal; }
+.equation b.pos { color: var(--pos); } .equation b.neg { color: var(--neg); }
+/* kontrolki */
+.ctl { margin: 10px 0; }
+.ctl label { display: flex; justify-content: space-between; gap: 8px; font-size: 0.9rem; }
+.ctl label output { font-variant-numeric: tabular-nums; font-weight: 600; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button.btn { font: inherit; font-size: 0.9rem; padding: 7px 12px; border-radius: 7px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); cursor: pointer; }
+button.btn:hover { border-color: var(--accent); }
+button.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.btn:disabled { opacity: 0.45; cursor: default; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
+.seg button { font: inherit; font-size: 0.86rem; padding: 6px 10px; border: 0; background: var(--paper); color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed=true] { background: var(--ink); color: #fff; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 0.9rem; margin: 6px 0; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+dl.stats { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; font-size: 0.92rem; }
+dl.stats dt { color: var(--muted); }
+dl.stats dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.status { padding: 8px 10px; border-radius: 7px; font-size: 0.9rem; background: var(--field); }
+.status.ok { background: #E7F6EC; color: var(--ok); } .status.bad { background: #FDECEC; color: var(--neg); } .status.warn { background: #FEF3E2; color: var(--warn); }
+canvas.mini { display: block; width: 100%; height: 130px; }
+.tryit { margin: 0; }
+.tryit h2 { font-size: 1.02rem; margin: 0 0 6px; }
+.tryit ul { margin: 0; padding-left: 20px; max-width: 75ch; }
+.tryit li { margin: 4px 0; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.86rem; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 5px; }
+.tabs { display: flex; gap: 4px; padding: 0 28px; flex-wrap: wrap; }
+.tabs button { font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0; background: transparent; color: var(--muted); cursor: pointer; }
+.tabs button[aria-selected=true] { background: var(--paper); color: var(--ink); font-weight: 600; }
+[hidden] { display: none !important; }
+@media (max-width: 900px) {
+  main.app { grid-template-columns: 1fr; grid-template-areas: "stage" "rail" "try"; padding: 8px 14px 20px; }
+  .equation { white-space: normal; }
+  header.top { padding: 14px 16px 6px; } .tabs { padding: 0 14px; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="crumb" href="index.html">Proces uczenia się w AI</a>
+  <h1>Spadek wzdłuż gradientu</h1>
+  <span class="lecture">wykład 2</span>
+</header>
+<main class="app">
+  <section class="stage">
+    <canvas class="main" id="cv" aria-label="Poziomice funkcji kosztu w przestrzeni wag i ścieżka optymalizacji"></canvas>
+    <div class="legend"><span><i style="background:var(--ink)"></i>punkt startowy</span><span><i style="background:var(--accent)"></i>ścieżka wag</span><span><i style="background:var(--ok)"></i>minimum w*</span></div>
+    <div class="equation" id="eq"></div>
+  </section>
+  <aside class="rail">
+    <div class="panel"><h3>Cechy</h3><div id="feat"></div>
+      <p class="hint">Model bez wyrazu wolnego, ŷ = w<sub>1</sub>x<sub>1</sub> + w<sub>2</sub>x<sub>2</sub>, żeby funkcję kosztu dało się narysować na płaszczyźnie wag.</p></div>
+    <div class="panel"><h3>Metoda</h3><div id="meth"></div><div class="row" id="btns"></div></div>
+    <div class="panel"><h3>Przebieg</h3>
+      <div class="status" id="status">Kliknij „Start”.</div>
+      <dl class="stats" style="margin-top:10px">
+        <dt>epoka</dt><dd id="sEp">0</dd>
+        <dt>koszt J(w)</dt><dd id="sJ"></dd>
+        <dt>minimum J(w*)</dt><dd id="sJs"></dd>
+        <dt>λ<sub>max</sub>, λ<sub>min</sub> macierzy XᵀX</dt><dd id="sL"></dd>
+        <dt>uwarunkowanie κ = λ<sub>max</sub>/λ<sub>min</sub></dt><dd id="sK"></dd>
+        <dt>granica stabilności 2/λ<sub>max</sub></dt><dd id="sB"></dd>
+      </dl>
+      <p class="hint" style="margin-top:10px">J(w) − J(w*) w kolejnych epokach (skala log.)</p>
+      <canvas class="mini" id="chart"></canvas>
+    </div>
+  </aside>
+
+  <section class="tryit panel">
+    <h2>Spróbuj</h2>
+    <ul>
+      <li>Na surowych cechach znajdź największe η, przy którym metoda wsadowa jeszcze się zbiega. Porównaj je z granicą 2/λ<sub>max</sub> w panelu obok.</li>
+      <li>Włącz standaryzację. Jak zmienia się kształt poziomic i liczba epok potrzebnych do minimum? Spójrz na wskaźnik uwarunkowania κ.</li>
+      <li>Przy tym samym η porównaj ścieżkę metody wsadowej, SGD i minipaczek. Która dochodzi do minimum, a która krąży w jego pobliżu?</li>
+      <li>Kliknij płaszczyznę, aby zacząć z innego miejsca. Czy funkcja wypukła ma minima lokalne?</li>
+    </ul>
+  </section>
+</main>
+<script>
+// ---- Wspólne narzędzia interfejsu i rysowania
+const COL = { pos: "#2563EB", neg: "#DC2626", acc: "#7C3AED", ink: "#1E1B2E", muted: "#6B6880", line: "#E2E0EA", ok: "#15803D" };
+const $ = (s, r = document) => r.querySelector(s);
+const fmt = (v, d = 2) => (!isFinite(v) ? (v > 0 ? "∞" : v < 0 ? "−∞" : "—") : v.toFixed(d).replace("-", "−").replace(".", ","));
+const sgn = (v, d = 2) => (v < 0 ? " − " : " + ") + fmt(Math.abs(v), d);
+const SUP = { "-": "⁻", "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹" };
+const sup = n => String(n).split("").map(ch => SUP[ch] ?? ch).join("");
+// liczba w zapisie naukowym, gdy bardzo mała lub duża
+const sci = (v, d = 2) => (v !== 0 && (Math.abs(v) < 1e-3 || Math.abs(v) >= 1e4) ? (() => { const e = Math.floor(Math.log10(Math.abs(v))); return fmt(v / Math.pow(10, e), 1) + "·10" + sup(e); })() : fmt(v, Math.abs(v) < 0.01 && v !== 0 ? Math.max(d, 4) : d));
+const debounce = (fn, ms = 120) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Suwak: <div class="ctl"><label>…<output></label><input type=range></div>
+function slider(root, { label, min, max, step = 0.01, value, log = false, digits = 2, unit = "", on }) {
+  const box = document.createElement("div"); box.className = "ctl";
+  const id = "s" + Math.random().toString(36).slice(2, 8);
+  box.innerHTML = `<label for="${id}"><span>${label}</span><output></output></label><input id="${id}" type="range">`;
+  const inp = box.querySelector("input"), out = box.querySelector("output");
+  if (log) { inp.min = Math.log10(min); inp.max = Math.log10(max); inp.step = 0.01; } else { inp.min = min; inp.max = max; inp.step = step; }
+  const get = () => (log ? Math.pow(10, +inp.value) : +inp.value);
+  const show = () => { const v = get(); out.textContent = (log ? sci(v, digits) : fmt(v, digits)) + unit; };
+  const set = v => { inp.value = log ? Math.log10(v) : v; show(); };
+  set(value);
+  inp.addEventListener("input", () => { show(); on && on(get()); });
+  root.appendChild(box);
+  return { get, set, input: inp };
+}
+// Przełącznik segmentowy
+function seg(root, options, value, on, label) {
+  const wrap = document.createElement("div"); wrap.className = "seg"; wrap.setAttribute("role", "group"); if (label) wrap.setAttribute("aria-label", label);
+  const btns = options.map(([v, t]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.dataset.v = v; wrap.appendChild(b); return b; });
+  let cur = value;
+  const sync = () => btns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === String(cur))));
+  btns.forEach(b => b.addEventListener("click", () => { cur = b.dataset.v; sync(); on && on(cur); }));
+  sync(); root.appendChild(wrap);
+  return { get: () => cur, set: v => { cur = String(v); sync(); } };
+}
+function check(root, label, value, on) {
+  const l = document.createElement("label"); l.className = "check";
+  l.innerHTML = `<input type="checkbox"> <span>${label}</span>`; const c = l.querySelector("input"); c.checked = value;
+  c.addEventListener("change", () => on && on(c.checked)); root.appendChild(l);
+  return { get: () => c.checked, set: v => (c.checked = v) };
+}
+function button(root, text, on, primary = false) {
+  const b = document.createElement("button"); b.type = "button"; b.className = "btn" + (primary ? " primary" : ""); b.textContent = text;
+  b.addEventListener("click", on); root.appendChild(b); return b;
+}
+function tabs(bar, panes, on) {
+  const btns = [...bar.querySelectorAll("button")];
+  const pick = i => { btns.forEach((b, j) => b.setAttribute("aria-selected", String(i === j))); panes.forEach((p, j) => (p.hidden = i !== j)); on && on(i); };
+  btns.forEach((b, i) => b.addEventListener("click", () => pick(i)));
+  bar.setAttribute("role", "tablist"); btns.forEach(b => b.setAttribute("role", "tab"));
+  pick(0); return pick;
+}
+
+// Płótno w układzie świata (x, y) z obsługą HiDPI
+class Plot {
+  constructor(canvas, box = { xmin: -3, xmax: 3, ymin: -3, ymax: 3 }, { equal = true } = {}) {
+    this.c = canvas; this.ctx = canvas.getContext("2d"); this.box0 = { ...box }; this.equal = equal;
+    this.resize(); new ResizeObserver(() => { this.resize(); this.onresize && this.onresize(); }).observe(canvas);
+  }
+  resize() {
+    const r = this.c.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    this.W = Math.max(50, r.width); this.H = Math.max(50, r.height);
+    this.c.width = Math.round(this.W * dpr); this.c.height = Math.round(this.H * dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const b = { ...this.box0 };
+    if (this.equal) { // zachowaj proporcje: poszerz krótszą oś
+      const sx = this.W / (b.xmax - b.xmin), sy = this.H / (b.ymax - b.ymin);
+      if (sx > sy) { const cx = (b.xmin + b.xmax) / 2, h = (this.W / sy) / 2; b.xmin = cx - h; b.xmax = cx + h; }
+      else { const cy = (b.ymin + b.ymax) / 2, h = (this.H / sx) / 2; b.ymin = cy - h; b.ymax = cy + h; }
+    }
+    this.b = b;
+  }
+  setBox(box) { this.box0 = { ...box }; this.resize(); }
+  X(x) { return (x - this.b.xmin) / (this.b.xmax - this.b.xmin) * this.W; }
+  Y(y) { return this.H - (y - this.b.ymin) / (this.b.ymax - this.b.ymin) * this.H; }
+  inv(px, py) { return { x: this.b.xmin + px / this.W * (this.b.xmax - this.b.xmin), y: this.b.ymin + (this.H - py) / this.H * (this.b.ymax - this.b.ymin) }; }
+  evt(e) { const r = this.c.getBoundingClientRect(); return this.inv(e.clientX - r.left, e.clientY - r.top); }
+  clear(bg = "#fff") { const g = this.ctx; g.fillStyle = bg; g.fillRect(0, 0, this.W, this.H); }
+  grid(step = 1) {
+    const g = this.ctx, b = this.b; g.lineWidth = 1;
+    for (let x = Math.ceil(b.xmin / step) * step; x <= b.xmax; x += step) { g.strokeStyle = Math.abs(x) < 1e-9 ? "#B9B6C8" : "#EFEEF4"; g.beginPath(); g.moveTo(this.X(x), 0); g.lineTo(this.X(x), this.H); g.stroke(); }
+    for (let y = Math.ceil(b.ymin / step) * step; y <= b.ymax; y += step) { g.strokeStyle = Math.abs(y) < 1e-9 ? "#B9B6C8" : "#EFEEF4"; g.beginPath(); g.moveTo(0, this.Y(y)); g.lineTo(this.W, this.Y(y)); g.stroke(); }
+  }
+  // Mapa ciepła: f(x,y) → [r,g,b,a]
+  heat(f, color, res = 4) {
+    const w = Math.ceil(this.W / res), h = Math.ceil(this.H / res);
+    if (!this._off || this._off.width !== w || this._off.height !== h) { this._off = document.createElement("canvas"); this._off.width = w; this._off.height = h; }
+    const oc = this._off.getContext("2d"), img = oc.createImageData(w, h), d = img.data;
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const p = this.inv((i + 0.5) * res, (j + 0.5) * res), c = color(f(p.x, p.y)), k = 4 * (j * w + i);
+      d[k] = c[0]; d[k + 1] = c[1]; d[k + 2] = c[2]; d[k + 3] = c[3] ?? 255;
+    }
+    oc.putImageData(img, 0, 0);
+    const g = this.ctx; g.save(); g.imageSmoothingEnabled = true; g.drawImage(this._off, 0, 0, this.W, this.H); g.restore();
+  }
+  // Siatka wartości do konturów
+  sample(f, n = 90) {
+    const b = this.b, G = []; for (let j = 0; j <= n; j++) { const row = []; for (let i = 0; i <= n; i++) row.push(f(b.xmin + (b.xmax - b.xmin) * i / n, b.ymin + (b.ymax - b.ymin) * j / n)); G.push(row); }
+    return { G, n };
+  }
+  // Izolinia f = level (marching squares); grid z sample()
+  contour(S, level, { color = COL.ink, width = 2, dash = [] } = {}) {
+    const { G, n } = S, b = this.b, g = this.ctx;
+    const px = i => this.X(b.xmin + (b.xmax - b.xmin) * i / n), py = j => this.Y(b.ymin + (b.ymax - b.ymin) * j / n);
+    g.save(); g.strokeStyle = color; g.lineWidth = width; g.setLineDash(dash); g.beginPath();
+    const lerp = (a, c) => (level - a) / (c - a);
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+      const v = [G[j][i], G[j][i + 1], G[j + 1][i + 1], G[j + 1][i]];
+      if (v.some(x => !isFinite(x))) continue;
+      const pts = [];
+      const e = [[0, 1, i, j, i + 1, j], [1, 2, i + 1, j, i + 1, j + 1], [3, 2, i, j + 1, i + 1, j + 1], [0, 3, i, j, i, j + 1]];
+      for (const [a, c, x0, y0, x1, y1] of e) if ((v[a] - level) * (v[c] - level) < 0) { const t = lerp(v[a], v[c]); pts.push([px(x0 + (x1 - x0) * t), py(y0 + (y1 - y0) * t)]); }
+      for (let k = 0; k + 1 < pts.length; k += 2) { g.moveTo(...pts[k]); g.lineTo(...pts[k + 1]); }
+    }
+    g.stroke(); g.restore();
+  }
+  // Prosta w0 + w1 x + w2 y = c
+  line(w0, w1, w2, { color = COL.ink, width = 2.5, dash = [], c = 0 } = {}) {
+    const b = this.b, g = this.ctx; let P;
+    if (Math.abs(w1) < 1e-12 && Math.abs(w2) < 1e-12) return;
+    if (Math.abs(w2) > Math.abs(w1)) P = [[b.xmin, (c - w0 - w1 * b.xmin) / w2], [b.xmax, (c - w0 - w1 * b.xmax) / w2]];
+    else P = [[(c - w0 - w2 * b.ymin) / w1, b.ymin], [(c - w0 - w2 * b.ymax) / w1, b.ymax]];
+    g.save(); g.strokeStyle = color; g.lineWidth = width; g.setLineDash(dash); g.beginPath(); g.moveTo(this.X(P[0][0]), this.Y(P[0][1])); g.lineTo(this.X(P[1][0]), this.Y(P[1][1])); g.stroke(); g.restore();
+  }
+  arrow(x0, y0, x1, y1, color = COL.acc, width = 2.5) {
+    const g = this.ctx, a = [this.X(x0), this.Y(y0)], b = [this.X(x1), this.Y(y1)], ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+    g.save(); g.strokeStyle = g.fillStyle = color; g.lineWidth = width; g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke();
+    g.beginPath(); g.moveTo(...b); g.lineTo(b[0] - 12 * Math.cos(ang - 0.4), b[1] - 12 * Math.sin(ang - 0.4)); g.lineTo(b[0] - 12 * Math.cos(ang + 0.4), b[1] - 12 * Math.sin(ang + 0.4)); g.closePath(); g.fill(); g.restore();
+  }
+  // Punkt klasy: +1 krzyżyk niebieski, −1 kółko czerwone
+  point(p, { r = 6, faded = false, ring = null, ringWidth = 2.5 } = {}) {
+    const g = this.ctx, x = this.X(p.x), y = this.Y(p.y);
+    g.save(); g.globalAlpha = faded ? 0.35 : 1; g.lineWidth = 2.6;
+    if (p.c === 1) { g.strokeStyle = COL.pos; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x + r, y); g.moveTo(x, y - r); g.lineTo(x, y + r); g.stroke(); }
+    else { g.strokeStyle = COL.neg; g.fillStyle = "#fff"; g.beginPath(); g.arc(x, y, r * 0.8, 0, 2 * Math.PI); g.fill(); g.stroke(); }
+    if (ring) { g.globalAlpha = 1; g.strokeStyle = ring; g.lineWidth = ringWidth; g.beginPath(); g.arc(x, y, r + 6, 0, 2 * Math.PI); g.stroke(); }
+    g.restore();
+  }
+  text(s, x, y, { color = COL.ink, size = 13, align = "left", base = "alphabetic", weight = 400 } = {}) {
+    const g = this.ctx; g.save(); g.fillStyle = color; g.font = `${weight} ${size}px system-ui, sans-serif`; g.textAlign = align; g.textBaseline = base; g.fillText(s, x, y); g.restore();
+  }
+  nearest(pts, e, maxPx = 14) {
+    const r = this.c.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+    let best = -1, bd = maxPx * maxPx;
+    pts.forEach((p, i) => { const d = (this.X(p.x) - mx) ** 2 + (this.Y(p.y) - my) ** 2; if (d < bd) { bd = d; best = i; } });
+    return best;
+  }
+}
+// Kolory map: wartość decyzyjna → tło (niebieskie dla +, czerwone dla −)
+const tint = (v, sat = 1.5) => { const t = Math.tanh(v / sat); const a = Math.abs(t);
+  return t > 0 ? [255 - 196 * a * 0.55, 255 - 155 * a * 0.55, 255 - 20 * a * 0.55, 255] : [255 - 35 * a * 0.55, 255 - 217 * a * 0.55, 255 - 217 * a * 0.55, 255]; };
+const probTint = p => tint(Math.log(p / (1 - p + 1e-12) + 1e-12), 2.2);
+
+// Prosty wykres liniowy / słupkowy
+function miniChart(canvas, series, { bars = false, logy = false, ymin = null, ymax = null, xlabel = "", ylabel = "", hline = null } = {}) {
+  const dpr = window.devicePixelRatio || 1, r = canvas.getBoundingClientRect(), W = r.width, H = r.height, g = canvas.getContext("2d");
+  canvas.width = W * dpr; canvas.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  const L = 40, R = 8, T = 8, B = 22, all = series.flatMap(s => s.values).filter(v => isFinite(v) && (!logy || v > 0));
+  if (!all.length) { g.fillStyle = COL.muted; g.font = "12px system-ui"; g.fillText("brak danych", L, H / 2); return; }
+  const tr = v => (logy ? Math.log10(v) : v);
+  let lo = ymin ?? Math.min(...all.map(tr)), hi = ymax ?? Math.max(...all.map(tr)); if (hi - lo < 1e-9) { hi += 1; lo -= bars ? 0 : 1; }
+  if (bars) lo = Math.min(0, lo);
+  const n = Math.max(...series.map(s => s.values.length)), X = i => L + (W - L - R) * (bars ? (i + 0.5) / Math.max(n, 1) : i / Math.max(n - 1, 1)), Y = v => T + (H - T - B) * (1 - (tr(v) - lo) / (hi - lo));
+  g.strokeStyle = COL.line; g.lineWidth = 1; g.beginPath(); g.moveTo(L, T); g.lineTo(L, H - B); g.lineTo(W - R, H - B); g.stroke();
+  g.fillStyle = COL.muted; g.font = "11px system-ui"; g.textAlign = "right";
+  const ints = all.every(v => Number.isInteger(v));
+  const lab = v => (logy ? "10" + sup(Math.round(v)) : ints || Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(Math.abs(v) < 10 ? 2 : 1).replace(".", ","));
+  g.fillText(lab(hi), L - 4, T + 9); g.fillText(lab(lo), L - 4, H - B);
+  g.textAlign = "center"; if (xlabel) g.fillText(xlabel, (L + W) / 2, H - 6);
+  if (hline !== null) { g.strokeStyle = COL.muted; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(L, Y(hline)); g.lineTo(W - R, Y(hline)); g.stroke(); g.setLineDash([]); }
+  for (const s of series) {
+    g.strokeStyle = g.fillStyle = s.color || COL.acc; g.lineWidth = 2;
+    if (bars) { const bw = Math.max(1, (W - L - R) / Math.max(n, 1) * 0.7); s.values.forEach((v, i) => { const y = Y(v); g.fillRect(X(i) - bw / 2, y, bw, H - B - y); }); }
+    else { g.beginPath(); let started = false; s.values.forEach((v, i) => { if (!isFinite(v) || (logy && v <= 0)) return; const y = Math.max(T, Math.min(H - B, Y(v))); started ? g.lineTo(X(i), y) : g.moveTo(X(i), y); started = true; }); g.stroke();
+      if (s.dots) s.values.forEach((v, i) => { if (isFinite(v)) { g.beginPath(); g.arc(X(i), Y(v), 3, 0, 7); g.fill(); } }); }
+    if (s.mark !== undefined) { const i = s.mark; g.beginPath(); g.arc(X(i), Y(s.values[i]), 5, 0, 7); g.fill(); }
+  }
+}
+
+// ---- Algorytmy: RNG, generatory danych, SMO (SVM), regresja logistyczna (Newton), cechy wielomianowe
+const ML = (() => {
+  function rng(seed) {
+    let a = seed >>> 0;
+    const u = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    let spare = null;
+    const n = () => { if (spare !== null) { const s = spare; spare = null; return s; }
+      let x, y, r; do { x = 2 * u() - 1; y = 2 * u() - 1; r = x * x + y * y; } while (r >= 1 || r === 0);
+      const f = Math.sqrt(-2 * Math.log(r) / r); spare = y * f; return x * f; };
+    return { u, n };
+  }
+  // Każdy generator zwraca [{x, y, c}] z c ∈ {1, -1}
+  const gen = {
+    blobs(n, seed, gap = 1.6, spread = 0.65) {
+      const R = rng(seed), out = [];
+      for (let i = 0; i < n; i++) { const c = i % 2 ? 1 : -1;
+        out.push({ x: c * gap * 0.85 + R.n() * spread, y: c * gap * 0.5 + R.n() * spread, c }); }
+      return out;
+    },
+    xor(n, seed, noise = 0) {
+      const R = rng(seed), out = [];
+      for (let i = 0; i < n; i++) { const x = R.n(), y = R.n();
+        const c = (x > 0) !== (y > 0) ? 1 : -1;
+        out.push({ x: x + noise * R.n(), y: y + noise * R.n(), c }); }
+      return out;
+    },
+    circles(n, seed, noise = 0.1) {
+      const R = rng(seed), out = [];
+      for (let i = 0; i < n; i++) { const c = i % 2 ? 1 : -1; const r = (c === 1 ? 0.8 : 2.0) + noise * R.n(); const t = 2 * Math.PI * R.u();
+        out.push({ x: r * Math.cos(t), y: r * Math.sin(t), c }); }
+      return out;
+    },
+    moons(n, seed, noise = 0.2) {
+      const R = rng(seed), out = [];
+      for (let i = 0; i < n; i++) { const c = i % 2 ? 1 : -1; const t = Math.PI * R.u();
+        let x, y; if (c === -1) { x = Math.cos(t); y = Math.sin(t); } else { x = 1 - Math.cos(t); y = 0.5 - Math.sin(t); }
+        out.push({ x: (x - 0.5) * 1.6 + noise * R.n() * 1.6, y: (y - 0.25) * 1.6 + noise * R.n() * 1.6, c }); }
+      return out;
+    },
+    spirals(n, seed, noise = 0.15) {
+      const R = rng(seed), out = [];
+      for (let i = 0; i < n; i++) { const c = i % 2 ? 1 : -1; const t = 0.5 + 2.6 * Math.PI * Math.sqrt(R.u());
+        const r = t * 0.32, s = c === 1 ? 0 : Math.PI;
+        out.push({ x: r * Math.cos(t + s) + noise * R.n(), y: r * Math.sin(t + s) + noise * R.n(), c }); }
+      return out;
+    },
+  };
+
+  // Rozwiązanie układu A x = b (eliminacja Gaussa z częściowym wyborem), A: tablica wierszy
+  function solve(A, b) {
+    const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+    for (let k = 0; k < n; k++) {
+      let p = k; for (let i = k + 1; i < n; i++) if (Math.abs(M[i][k]) > Math.abs(M[p][k])) p = i;
+      [M[k], M[p]] = [M[p], M[k]];
+      const d = M[k][k] || 1e-12;
+      for (let i = k + 1; i < n; i++) { const f = M[i][k] / d; if (f === 0) continue; const Mi = M[i], Mk = M[k]; for (let j = k; j <= n; j++) Mi[j] -= f * Mk[j]; }
+    }
+    const x = new Array(n).fill(0);
+    for (let i = n - 1; i >= 0; i--) { let s = M[i][n]; for (let j = i + 1; j < n; j++) s -= M[i][j] * x[j]; x[i] = s / (M[i][i] || 1e-12); }
+    return x;
+  }
+
+  const sigmoid = z => 1 / (1 + Math.exp(-Math.max(-35, Math.min(35, z))));
+
+  // Regresja logistyczna metodą Newtona. X: wiersze cech BEZ kolumny jedynek, y ∈ {0,1}.
+  // Minimalizuje  Σ log-loss + λ/2 ||w||²  (bez kary dla w0). Zwraca [w0, w1, ...].
+  function logregNewton(X, y, lambda = 1e-4, iters = 30) {
+    const n = X.length, d = X[0].length + 1;
+    let w = new Array(d).fill(0);
+    const cost = v => { let c = 0; for (let i = 0; i < n; i++) { let z = v[0]; for (let j = 1; j < d; j++) z += v[j] * X[i][j - 1];
+      c += y[i] ? Math.log1p(Math.exp(-z)) : Math.log1p(Math.exp(z)); if (!isFinite(c)) c = z > 0 === !!y[i] ? c : 1e300; }
+      let r = 0; for (let j = 1; j < d; j++) r += v[j] * v[j]; return c + lambda / 2 * r; };
+    for (let it = 0; it < iters; it++) {
+      const g = new Array(d).fill(0), H = Array.from({ length: d }, () => new Array(d).fill(0));
+      for (let i = 0; i < n; i++) {
+        const xi = [1, ...X[i]]; let z = 0; for (let j = 0; j < d; j++) z += w[j] * xi[j];
+        const p = sigmoid(z), r = p - y[i], s = Math.max(p * (1 - p), 1e-9);
+        for (let j = 0; j < d; j++) { g[j] += r * xi[j]; const sj = s * xi[j], Hj = H[j]; for (let k = j; k < d; k++) Hj[k] += sj * xi[k]; }
+      }
+      for (let j = 0; j < d; j++) for (let k = 0; k < j; k++) H[j][k] = H[k][j];
+      for (let j = 1; j < d; j++) { g[j] += lambda * w[j]; H[j][j] += lambda; }
+      H[0][0] += 1e-9;
+      const step = solve(H, g);
+      if (!step.every(isFinite)) break;
+      // przeszukiwanie liniowe: połowimy krok, dopóki koszt nie spadnie
+      const c0 = cost(w); let t = 1, wn = w;
+      for (let k = 0; k < 30; k++) { wn = w.map((v, j) => v - t * step[j]); if (cost(wn) <= c0 + 1e-12) break; t /= 2; }
+      let norm = 0; for (let j = 0; j < d; j++) norm += (wn[j] - w[j]) ** 2;
+      w = wn;
+      if (norm < 1e-14) break;
+    }
+    return w;
+  }
+
+  // Cechy wielomianowe x^a y^b dla a + b ≤ deg (bez wyrazu wolnego), ze standaryzacją ze zbioru uczącego
+  function polyTerms(deg) { const t = []; for (let s = 1; s <= deg; s++) for (let a = s; a >= 0; a--) t.push([a, s - a]); return t; }
+  function polyMap(x, y, terms) { return terms.map(([a, b]) => Math.pow(x, a) * Math.pow(y, b)); }
+  function makePolyModel(train, deg, lambda) {
+    const terms = polyTerms(deg);
+    const raw = train.map(p => polyMap(p.x, p.y, terms));
+    const d = terms.length, mu = new Array(d).fill(0), sd = new Array(d).fill(0);
+    raw.forEach(r => r.forEach((v, j) => mu[j] += v / raw.length));
+    raw.forEach(r => r.forEach((v, j) => sd[j] += (v - mu[j]) ** 2 / raw.length));
+    for (let j = 0; j < d; j++) sd[j] = Math.sqrt(sd[j]) || 1;
+    const X = raw.map(r => r.map((v, j) => (v - mu[j]) / sd[j]));
+    const w = logregNewton(X, train.map(p => (p.c === 1 ? 1 : 0)), lambda);
+    const f = (x, y) => { const r = polyMap(x, y, terms); let z = w[0]; for (let j = 0; j < d; j++) z += w[j + 1] * (r[j] - mu[j]) / sd[j]; return z; };
+    return { f, w, terms };
+  }
+
+  // Jądra
+  const kernels = {
+    linear: () => (a, b) => a.x * b.x + a.y * b.y,
+    poly: (deg, coef0 = 1, gamma = 1) => (a, b) => Math.pow(gamma * (a.x * b.x + a.y * b.y) + coef0, deg),
+    rbf: gamma => (a, b) => { const dx = a.x - b.x, dy = a.y - b.y; return Math.exp(-gamma * (dx * dx + dy * dy)); },
+  };
+
+  // SMO (Platt) z heurystykami wyboru; dane [{x,y,c}], c ∈ {1,-1}
+  function smo(data, C, K, { tol = 1e-3, eps = 1e-5, maxIter = 20000, linear = false } = {}) {
+    const n = data.length, y = data.map(p => p.c);
+    const G = Array.from({ length: n }, (_, i) => Float64Array.from({ length: n }, (_, j) => K(data[i], data[j])));
+    const a = new Float64Array(n); let b = 0;
+    const E = new Float64Array(n); for (let i = 0; i < n; i++) E[i] = -y[i]; // f(x)=0 na starcie
+    const f = i => E[i] + y[i];
+    let iter = 0;
+    function takeStep(i1, i2) {
+      if (i1 === i2) return 0;
+      const a1 = a[i1], a2 = a[i2], y1 = y[i1], y2 = y[i2], E1 = E[i1], E2 = E[i2], s = y1 * y2;
+      let L, H;
+      if (y1 !== y2) { L = Math.max(0, a2 - a1); H = Math.min(C, C + a2 - a1); } else { L = Math.max(0, a2 + a1 - C); H = Math.min(C, a2 + a1); }
+      if (L >= H) return 0;
+      const k11 = G[i1][i1], k12 = G[i1][i2], k22 = G[i2][i2], eta = k11 + k22 - 2 * k12;
+      let a2n;
+      if (eta > 1e-12) { a2n = a2 + y2 * (E1 - E2) / eta; a2n = Math.min(H, Math.max(L, a2n)); }
+      else {
+        const f1 = y1 * (E1 + b) - a1 * k11 - s * a2 * k12, f2 = y2 * (E2 + b) - s * a1 * k12 - a2 * k22;
+        const L1 = a1 + s * (a2 - L), H1 = a1 + s * (a2 - H);
+        const Lobj = L1 * f1 + L * f2 + 0.5 * L1 * L1 * k11 + 0.5 * L * L * k22 + s * L * L1 * k12;
+        const Hobj = H1 * f1 + H * f2 + 0.5 * H1 * H1 * k11 + 0.5 * H * H * k22 + s * H * H1 * k12;
+        a2n = Lobj < Hobj - eps ? L : Lobj > Hobj + eps ? H : a2;
+      }
+      if (Math.abs(a2n - a2) < eps * (a2n + a2 + eps)) return 0;
+      const a1n = a1 + s * (a2 - a2n);
+      const b1 = E1 + y1 * (a1n - a1) * k11 + y2 * (a2n - a2) * k12 + b;
+      const b2 = E2 + y1 * (a1n - a1) * k12 + y2 * (a2n - a2) * k22 + b;
+      const bn = a1n > 0 && a1n < C ? b1 : a2n > 0 && a2n < C ? b2 : (b1 + b2) / 2;
+      const d1 = y1 * (a1n - a1), d2 = y2 * (a2n - a2), db = bn - b;
+      for (let i = 0; i < n; i++) E[i] += d1 * G[i1][i] + d2 * G[i2][i] - db;
+      a[i1] = a1n; a[i2] = a2n; b = bn;
+      return 1;
+    }
+    function examine(i2) {
+      const y2 = y[i2], a2 = a[i2], r2 = E[i2] * y2;
+      if ((r2 < -tol && a2 < C) || (r2 > tol && a2 > 0)) {
+        let i1 = -1, best = -1;
+        for (let i = 0; i < n; i++) if (a[i] > 0 && a[i] < C) { const d = Math.abs(E[i] - E[i2]); if (d > best) { best = d; i1 = i; } }
+        if (i1 >= 0 && takeStep(i1, i2)) return 1;
+        const st = Math.floor(Math.random() * n);
+        for (let k = 0; k < n; k++) { const i = (st + k) % n; if (a[i] > 0 && a[i] < C && takeStep(i, i2)) return 1; }
+        for (let k = 0; k < n; k++) { const i = (st + k) % n; if (takeStep(i, i2)) return 1; }
+      }
+      return 0;
+    }
+    let changed = 0, all = true;
+    while ((changed > 0 || all) && iter < maxIter) {
+      changed = 0;
+      for (let i = 0; i < n; i++) if (all || (a[i] > 0 && a[i] < C)) changed += examine(i);
+      iter++;
+      if (all) all = false; else if (changed === 0) all = true;
+    }
+    const sv = []; for (let i = 0; i < n; i++) if (a[i] > 1e-8) sv.push(i);
+    const decision = p => { let s = -b; for (const i of sv) s += a[i] * y[i] * K(data[i], p); return s; };
+    // wektor wag dla jądra liniowego
+    let w = null;
+    if (linear) { w = [0, 0]; for (const i of sv) { w[0] += a[i] * y[i] * data[i].x; w[1] += a[i] * y[i] * data[i].y; } }
+    return { alpha: Array.from(a), b, sv, decision, w, iterations: iter, converged: iter < maxIter, E: f };
+  }
+
+  // Wartości własne symetrycznej macierzy 2×2
+  function eig2(a, b, d) { const t = (a + d) / 2, s = Math.sqrt(((a - d) / 2) ** 2 + b * b); return [t + s, t - s]; }
+
+  return { rng, gen, solve, sigmoid, logregNewton, polyTerms, polyMap, makePolyModel, kernels, smo, eig2 };
+})();
+if (typeof module !== "undefined") module.exports = ML;
+</script>
+<script>
+const N = 40;
+let raw = null, X = [], y = [], H = null, wStar = [0, 0], Jstar = 0;
+const S = { w: [0, 0], start: [0, 0], path: [], epoch: 0, k: 0, order: [], hist: [], diverged: false, timer: null, last: null };
+const P = new Plot($("#cv"), { xmin: -3, xmax: 3, ymin: -3, ymax: 3 });
+
+function genRaw(seed) {
+  const R = ML.rng(seed), d = [];
+  for (let i = 0; i < N; i++) { const u = R.n(), v = R.n(); const x1 = 1.0 + 0.5 * u, x2 = 3 + 1.5 * (0.6 * u + 0.8 * v); d.push([x1, x2, 1.5 * x1 - 0.6 * x2 + 0.3 * R.n()]); }
+  return d;
+}
+const F = $("#feat");
+const scaling = seg(F, [["raw", "surowe"], ["std", "standaryzowane"]], "raw", () => setup(), "Skalowanie cech");
+const scaleInfo = document.createElement("p"); scaleInfo.className = "hint"; F.appendChild(scaleInfo);
+const rowF = document.createElement("div"); rowF.className = "row"; F.appendChild(rowF);
+let seed = 3; button(rowF, "Losuj nowe dane", () => { seed++; raw = genRaw(seed); setup(); });
+
+const M = $("#meth");
+const method = seg(M, [["batch", "wsadowo"], ["sgd", "SGD"], ["mini", "minipaczki"]], "batch", () => reset(), "Wariant gradientu");
+const bsz = slider(M, { label: "rozmiar minipaczki", min: 2, max: 20, step: 1, value: 8, digits: 0, on: () => reset() });
+const eta = slider(M, { label: "współczynnik uczenia η", min: 1e-5, max: 0.1, log: true, value: 0.003, digits: 4, on: () => reset() });
+const decay = check(M, "malejące η (η / (1 + epoka))", false, () => reset());
+const speed = slider(M, { label: "szybkość (epoki na sekundę)", min: 1, max: 30, step: 1, value: 4, digits: 0 });
+const BT = $("#btns");
+const bRun = button(BT, "Start", () => (S.timer ? stop() : run()), true);
+button(BT, "Jedna epoka", () => { stop(); epochStep(); draw(); });
+button(BT, "Od nowa", () => { stop(); reset(); });
+
+function setup() {
+  const std = scaling.get() === "std";
+  const m1 = raw.reduce((s, r) => s + r[0], 0) / N, m2 = raw.reduce((s, r) => s + r[1], 0) / N, my = raw.reduce((s, r) => s + r[2], 0) / N;
+  const s1 = Math.sqrt(raw.reduce((s, r) => s + (r[0] - m1) ** 2, 0) / N), s2 = Math.sqrt(raw.reduce((s, r) => s + (r[1] - m2) ** 2, 0) / N);
+  X = raw.map(r => (std ? [(r[0] - m1) / s1, (r[1] - m2) / s2] : [r[0], r[1]]));
+  y = raw.map(r => (std ? r[2] - my : r[2]));
+  const a = X.reduce((s, x) => s + x[0] * x[0], 0), b = X.reduce((s, x) => s + x[0] * x[1], 0), d = X.reduce((s, x) => s + x[1] * x[1], 0);
+  const c1 = X.reduce((s, x, i) => s + x[0] * y[i], 0), c2 = X.reduce((s, x, i) => s + x[1] * y[i], 0);
+  H = [a, b, d]; wStar = ML.solve([[a, b], [b, d]], [c1, c2]); Jstar = J(wStar);
+  const span = std ? 2.6 : 3.2;
+  P.setBox({ xmin: wStar[0] - span, xmax: wStar[0] + span, ymin: wStar[1] - span, ymax: wStar[1] + span });
+  S.start = [wStar[0] - span * 0.8, wStar[1] + span * 0.75];
+  scaleInfo.innerHTML = std ? "Każda cecha ma średnią 0 i odchylenie standardowe 1." : `Średnie cech: x<sub>1</sub> ≈ ${fmt(m1, 1)}, x<sub>2</sub> ≈ ${fmt(m2, 1)}; odchylenia: ${fmt(s1, 1)} i ${fmt(s2, 1)}.`;
+  const [l1, l2] = ML.eig2(a, b, d);
+  $("#sL").textContent = `${fmt(l1, 0)} / ${fmt(l2, 1)}`; $("#sK").textContent = fmt(l1 / l2, 0); $("#sB").textContent = fmt(2 / l1, 4);
+  reset();
+}
+function J(w) { let s = 0; for (let i = 0; i < N; i++) { const e = y[i] - w[0] * X[i][0] - w[1] * X[i][1]; s += e * e; } return s / 2; }
+function reset() {
+  S.w = [...S.start]; S.path = [[...S.w]]; S.epoch = 0; S.k = 0; S.hist = [J(S.w) - Jstar]; S.diverged = false; S.last = null; newOrder();
+  status("Kliknij „Start”.", ""); draw();
+}
+function newOrder() { const R = ML.rng(seed * 97 + S.epoch); S.order = [...Array(N).keys()]; for (let i = N - 1; i > 0; i--) { const j = Math.floor(R.u() * (i + 1)); [S.order[i], S.order[j]] = [S.order[j], S.order[i]]; } }
+function update(idx) {
+  const e0 = eta.get() / (decay.get() ? 1 + S.epoch : 1);
+  let g0 = 0, g1 = 0;
+  for (const i of idx) { const e = y[i] - S.w[0] * X[i][0] - S.w[1] * X[i][1]; g0 += e * X[i][0]; g1 += e * X[i][1]; }
+  S.last = [e0 * g0, e0 * g1];
+  S.w = [S.w[0] + e0 * g0, S.w[1] + e0 * g1]; S.path.push([...S.w]);
+}
+function epochStep() {
+  if (S.diverged) return;
+  const m = method.get();
+  if (m === "batch") update([...Array(N).keys()]);
+  else { const b = m === "sgd" ? 1 : bsz.get(); for (let s = 0; s < N; s += b) update(S.order.slice(s, s + b)); }
+  S.epoch++; newOrder();
+  const j = J(S.w); S.hist.push(j - Jstar);
+  if (!isFinite(j) || j > 1e6 * (J(S.start) + 1)) { S.diverged = true; stop(); status("Rozbieżność: koszt rośnie bez końca. Zmniejsz η.", "bad"); }
+  else if (j - Jstar < 1e-6 * (J(S.start) - Jstar)) { stop(); status(`Minimum osiągnięte po ${S.epoch} epokach.`, "ok"); }
+  else status(`Epoka ${S.epoch}.`, "warn");
+  if (S.epoch >= 400) { stop(); if (!S.diverged) status(`400 epok, a do minimum wciąż daleko — zbieżność bardzo wolna.`, "warn"); }
+}
+function run() { if (S.diverged || S.epoch >= 400) reset(); bRun.textContent = "Zatrzymaj"; S.timer = setInterval(() => { epochStep(); draw(); }, 1000 / speed.get()); }
+function stop() { clearInterval(S.timer); S.timer = null; bRun.textContent = "Start"; }
+function status(t, c) { const s = $("#status"); s.textContent = t; s.className = "status " + c; }
+
+function draw() {
+  P.clear();
+  const top = Math.log(J(S.start) - Jstar + 1e-9) + 1, bot = Math.log(1e-3 * (J(S.start) - Jstar) + 1e-9);
+  P.heat((a, b) => Math.log(J([a, b]) - Jstar + 1e-9), v => { const t = Math.max(0, Math.min(1, (v - bot) / (top - bot))); return [255 - 30 * (1 - t), 255 - 38 * (1 - t), 255 - 8 * (1 - t), 255]; }, 5);
+  const Sg = P.sample((a, b) => J([a, b]) - Jstar, 100), base = J(S.start) - Jstar;
+  for (let k = -9; k <= 4; k++) P.contour(Sg, base * Math.pow(2, k), { color: "rgba(124,58,237,0.35)", width: 1.2 });
+  // ścieżka
+  const g = P.ctx; g.save(); g.strokeStyle = COL.acc; g.lineWidth = method.get() === "batch" ? 2.4 : 1.2; g.beginPath();
+  S.path.forEach(([a, b], i) => { const px = Math.max(-1e4, Math.min(1e4, P.X(a))), py = Math.max(-1e4, Math.min(1e4, P.Y(b))); i ? g.lineTo(px, py) : g.moveTo(px, py); }); g.stroke();
+  if (method.get() === "batch") { g.fillStyle = COL.acc; S.path.forEach(([a, b]) => { g.beginPath(); g.arc(P.X(a), P.Y(b), 3, 0, 7); g.fill(); }); }
+  g.restore();
+  const gx = P.ctx; gx.fillStyle = COL.ink; gx.beginPath(); gx.arc(P.X(S.start[0]), P.Y(S.start[1]), 6, 0, 7); gx.fill();
+  gx.fillStyle = COL.ok; gx.beginPath(); gx.arc(P.X(wStar[0]), P.Y(wStar[1]), 7, 0, 7); gx.fill();
+  P.text("w₁", P.W - 24, P.H - 10, { color: COL.muted, size: 13 }); P.text("w₂", 8, 18, { color: COL.muted, size: 13 });
+  const m = method.get(), sum = m === "batch" ? "Σ<sub>i=1..n</sub>" : m === "sgd" ? "" : "Σ<sub>i ∈ paczka</sub>";
+  let s = `J(w) = ½ Σ<sub>i</sub> (y<sup>(i)</sup> − w<sub>1</sub>x<sub>1</sub><sup>(i)</sup> − w<sub>2</sub>x<sub>2</sub><sup>(i)</sup>)² = ${fmt(J(S.w), 2)} &nbsp; przy w = (${fmt(S.w[0])}; ${fmt(S.w[1])})`;
+  s += `<span class="sub">Aktualizacja: w := w + η ${sum} (y<sup>(i)</sup> − ŷ<sup>(i)</sup>) x<sup>(i)</sup>` + (S.last ? ` — ostatnio Δw = (${sci(S.last[0], 3)}; ${sci(S.last[1], 3)})` : "") + "</span>";
+  $("#eq").innerHTML = s;
+  $("#sEp").textContent = S.epoch; $("#sJ").textContent = fmt(J(S.w), 2); $("#sJs").textContent = fmt(Jstar, 2);
+  miniChart($("#chart"), [{ values: S.hist, color: COL.acc }], { logy: true, xlabel: "epoka" });
+}
+$("#cv").addEventListener("pointerdown", e => { stop(); const q = P.evt(e); S.start = [q.x, q.y]; reset(); });
+P.onresize = draw;
+raw = genRaw(seed); setup();
+</script>
+</body>
+</html>
