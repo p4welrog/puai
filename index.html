@@ -91,7 +91,7 @@ footer { margin-top: 34px; color: var(--muted); font-size: 0.86rem; max-width: 7
 <body>
 <div class="wrap">
   <h1>Laboratorium uczenia maszynowego</h1>
-  <p class="lead">Sześć interaktywnych modeli do wykładów z przedmiotu „Proces uczenia się w AI”. Każdy działa bez internetu, w samej przeglądarce. Zmieniaj parametry, dodawaj i przesuwaj punkty, obserwuj, co robi algorytm.</p>
+  <p class="lead">Jedenaście interaktywnych modeli do wykładów z przedmiotu „Proces uczenia się w AI”. Każdy działa bez internetu, w samej przeglądarce. Zmieniaj parametry, dodawaj i przesuwaj punkty, obserwuj, co robi algorytm.</p>
 
   <section class="lecture-block"><h2>Wykład 1</h2><div class="list">
     <a class="item" href="perceptron.html"><canvas data-thumb="perceptron"></canvas><div><strong>Perceptron krok po kroku</strong><span>Reguła uczenia na żywo: każda próbka, każda aktualizacja wag, zbieżność i jej brak.</span></div></a>
@@ -108,7 +108,18 @@ footer { margin-top: 34px; color: var(--muted); font-size: 0.86rem; max-width: 7
     <a class="item" href="kernel.html"><canvas data-thumb="kernel"></canvas><div><strong>Funkcje jądra</strong><span>XOR, okręgi i spirale. Jądro RBF i wielomianowe, mapowanie do trzech wymiarów.</span></div></a>
   </div></section>
 
-  <footer>Algorytmy (perceptron, gradient prosty, regresja logistyczna metodą Newtona, SVM algorytmem SMO) są zaimplementowane w JavaScripcie i sprawdzone z wynikami scikit-learn. Dane są losowane z ustalonym ziarnem, więc „Losuj ponownie” daje te same zbiory na każdym komputerze.</footer>
+  <section class="lecture-block"><h2>Wykład 4</h2><div class="list">
+    <a class="item" href="tree.html"><canvas data-thumb="tree"></canvas><div><strong>Drzewo decyzyjne</strong><span>Podziały równoległe do osi, głębokość i przetrenowanie, Gini, entropia i błąd klasyfikacji.</span></div></a>
+    <a class="item" href="forest.html"><canvas data-thumb="forest"></canvas><div><strong>Las losowy</strong><span>Próbki bootstrapowe, losowe cechy w węzłach, uśrednianie drzew, błąd OOB.</span></div></a>
+    <a class="item" href="knn.html"><canvas data-thumb="knn"></canvas><div><strong>k najbliższych sąsiadów</strong><span>Wpływ k, metryka, skala cech i klątwa wymiarowości.</span></div></a>
+  </div></section>
+
+  <section class="lecture-block"><h2>Wykład 5</h2><div class="list">
+    <a class="item" href="mlp.html"><canvas data-thumb="mlp"></canvas><div><strong>Sieć neuronowa na płaszczyźnie</strong><span>Uczenie MLP na żywo: architektura, aktywacje, minipaczki, co widzą neurony ukryte, zanikający gradient.</span></div></a>
+    <a class="item" href="backprop.html"><canvas data-thumb="backprop"></canvas><div><strong>Propagacja wsteczna krok po kroku</strong><span>Sieć 2–2–2 z liczbami: przejście w przód, błędy δ, gradienty, aktualizacja, sprawdzenie numeryczne.</span></div></a>
+  </div></section>
+
+  <footer>Algorytmy (perceptron, gradient prosty, regresja logistyczna metodą Newtona, SVM algorytmem SMO, drzewo CART, las losowy, k-NN, MLP z propagacją wsteczną) są zaimplementowane w JavaScripcie i sprawdzone z wynikami scikit-learn. Dane są losowane z ustalonym ziarnem, więc „Losuj ponownie” daje te same zbiory na każdym komputerze.</footer>
 </div>
 <script>
 // ---- Wspólne narzędzia interfejsu i rysowania
@@ -290,6 +301,34 @@ function miniChart(canvas, series, { bars = false, logy = false, ymin = null, ym
       if (s.dots) s.values.forEach((v, i) => { if (isFinite(v)) { g.beginPath(); g.arc(X(i), Y(v), 3, 0, 7); g.fill(); } }); }
     if (s.mark !== undefined) { const i = s.mark; g.beginPath(); g.arc(X(i), Y(s.values[i]), 5, 0, 7); g.fill(); }
   }
+}
+
+// Edycja punktów na płótnie: przeciąganie, dodawanie (tryb "pos"/"neg"), usuwanie ("del").
+// get() zwraca bieżącą tablicę punktów; change() wywoływane po każdej zmianie; hover(q) — ruch myszy bez przeciągania.
+function editPoints(P, get, modeSeg, change, hover) {
+  const cv = P.c; let drag = -1;
+  cv.addEventListener("contextmenu", e => e.preventDefault());
+  cv.addEventListener("pointerdown", e => {
+    const pts = get(), k = P.nearest(pts, e), m = modeSeg ? modeSeg.get() : "pos";
+    if (m === "del") { if (k >= 0) { pts.splice(k, 1); change(); } return; }
+    if (k >= 0) { drag = k; cv.setPointerCapture(e.pointerId); return; }
+    const q = P.evt(e); pts.push({ x: q.x, y: q.y, c: e.button === 2 ? -1 : m === "pos" ? 1 : -1 }); change();
+  });
+  cv.addEventListener("pointermove", e => {
+    if (drag >= 0) { const q = P.evt(e), pts = get(); pts[drag].x = q.x; pts[drag].y = q.y; change(true); return; }
+    hover && hover(P.evt(e));
+  });
+  cv.addEventListener("pointerup", () => { if (drag >= 0) { drag = -1; change(); } });
+  cv.addEventListener("pointerleave", () => hover && hover(null));
+}
+// Zestawy danych 2D używane na kilku stronach; zwraca {train, test}
+function dataset(kind, seed, n = 120, noise = null) {
+  const g = ML.gen, mk = s => kind === "blobs" ? g.blobs(n, s, 1.0, noise ?? 0.8)
+    : kind === "moons" ? g.moons(n, s, noise ?? 0.22)
+    : kind === "xor" ? g.xor(n, s, noise ?? 0.15)
+    : kind === "circles" ? g.circles(n, s, noise ?? 0.3)
+    : g.spirals(n, s, noise ?? 0.12);
+  return { train: mk(seed), test: mk(seed + 1000) };
 }
 
 // ---- Algorytmy: RNG, generatory danych, SMO (SVM), regresja logistyczna (Newton), cechy wielomianowe
@@ -476,6 +515,178 @@ const ML = (() => {
   return { rng, gen, solve, sigmoid, logregNewton, polyTerms, polyMap, makePolyModel, kernels, smo, eig2 };
 })();
 if (typeof module !== "undefined") module.exports = ML;
+
+// ---- Algorytmy do wykładów 4–5: drzewo CART, las losowy, k-NN, perceptron wielowarstwowy
+const ML2 = (() => {
+  // ---------- Miary zanieczyszczenia (np, nn — liczności klas +1 i −1)
+  const impurity = {
+    gini: (a, b) => { const n = a + b; if (!n) return 0; const p = a / n; return 1 - p * p - (1 - p) * (1 - p); },
+    entropy: (a, b) => { const n = a + b; if (!n) return 0; let h = 0; for (const k of [a, b]) if (k > 0) { const p = k / n; h -= p * Math.log2(p); } return h; },
+    error: (a, b) => { const n = a + b; if (!n) return 0; return 1 - Math.max(a, b) / n; },
+  };
+
+  // Najlepszy podział węzła: dla cechy j ∈ feats sprawdza progi w połowie między kolejnymi różnymi wartościami.
+  // Zwraca {feature, thr, gain} albo null; minLeaf — minimalna liczba próbek w liściu.
+  function bestSplit(pts, idx, crit, feats, minLeaf = 1) {
+    const I = impurity[crit];
+    let P = 0; for (const i of idx) if (pts[i].c === 1) P++;
+    const n = idx.length, N = n - P, parent = I(P, N);
+    let best = null;
+    for (const f of feats) {
+      const key = f === 0 ? "x" : "y";
+      const s = idx.slice().sort((a, b) => pts[a][key] - pts[b][key]);
+      let lp = 0, ln = 0;
+      for (let k = 0; k < n - 1; k++) {
+        if (pts[s[k]].c === 1) lp++; else ln++;
+        const v0 = pts[s[k]][key], v1 = pts[s[k + 1]][key];
+        if (v1 - v0 < 1e-12) continue;
+        const nl = k + 1; if (nl < minLeaf || n - nl < minLeaf) continue;
+        const gain = parent - nl / n * I(lp, ln) - (n - nl) / n * I(P - lp, N - ln);
+        if (!best || gain > best.gain + 1e-12) best = { feature: f, thr: (v0 + v1) / 2, gain };
+      }
+    }
+    return best;
+  }
+
+  // Drzewo CART dla danych [{x, y, c}], c ∈ {1, −1}.
+  // opt: crit, maxDepth, minLeaf, maxFeatures (1 albo 2), rng (do losowania cech)
+  function buildTree(pts, opt = {}, idx = null) {
+    const { crit = "gini", maxDepth = 5, minLeaf = 1, maxFeatures = 2, rng = null } = opt;
+    idx = idx || pts.map((_, i) => i);
+    let id = 0;
+    const grow = (idx, depth, box) => {
+      let P = 0; for (const i of idx) if (pts[i].c === 1) P++;
+      const node = { id: id++, n: idx.length, pos: P, neg: idx.length - P, depth, box, impurity: impurity[crit](P, idx.length - P) };
+      if (depth >= maxDepth || P === 0 || P === idx.length || idx.length < 2 * minLeaf) return node;
+      let feats = [0, 1];
+      if (maxFeatures === 1) feats = [rng && rng.u() < 0.5 ? 0 : 1];
+      let sp = bestSplit(pts, idx, crit, feats, minLeaf);
+      if (!sp && maxFeatures === 1) sp = bestSplit(pts, idx, crit, [1 - feats[0]], minLeaf);   // jak w sklearn: szukaj dalej, gdy wylosowana cecha nie daje podziału
+      if (!sp) return node;
+      const key = sp.feature === 0 ? "x" : "y";
+      const L = idx.filter(i => pts[i][key] <= sp.thr), R = idx.filter(i => pts[i][key] > sp.thr);
+      Object.assign(node, sp);
+      const bl = { ...box }, br = { ...box };
+      if (sp.feature === 0) { bl.xmax = sp.thr; br.xmin = sp.thr; } else { bl.ymax = sp.thr; br.ymin = sp.thr; }
+      node.left = grow(L, depth + 1, bl); node.right = grow(R, depth + 1, br);
+      return node;
+    };
+    const root = grow(idx, 0, { xmin: -Infinity, xmax: Infinity, ymin: -Infinity, ymax: Infinity });
+    return root;
+  }
+  const leafOf = (node, x, y) => { while (node.left) node = (node.feature === 0 ? x : y) <= node.thr ? node.left : node.right; return node; };
+  const treeProba = (node, x, y) => { const l = leafOf(node, x, y); return l.pos / l.n; };   // p(y = +1)
+  const leaves = node => (node.left ? [...leaves(node.left), ...leaves(node.right)] : [node]);
+  const treeDepth = node => (node.left ? 1 + Math.max(treeDepth(node.left), treeDepth(node.right)) : 0);
+
+  // ---------- Las losowy
+  function buildForest(pts, { nTrees = 50, maxDepth = 20, minLeaf = 1, maxFeatures = 1, bootstrap = true, crit = "gini", seed = 1 } = {}) {
+    const R = ML.rng(seed), n = pts.length, trees = [], inBag = [];
+    for (let t = 0; t < nTrees; t++) {
+      let idx;
+      if (bootstrap) { idx = []; for (let i = 0; i < n; i++) idx.push(Math.floor(R.u() * n)); }
+      else idx = pts.map((_, i) => i);
+      const bag = new Uint8Array(n); idx.forEach(i => bag[i] = 1);
+      trees.push(buildTree(pts, { crit, maxDepth, minLeaf, maxFeatures, rng: R }, idx)); inBag.push(bag);
+    }
+    const proba = (x, y, k = trees.length) => { let s = 0; for (let t = 0; t < k; t++) s += treeProba(trees[t], x, y); return s / k; };
+    // OOB: dla k pierwszych drzew
+    const oob = (k = trees.length) => {
+      let ok = 0, cnt = 0;
+      pts.forEach((p, i) => { let s = 0, m = 0; for (let t = 0; t < k; t++) if (!inBag[t][i]) { s += treeProba(trees[t], p.x, p.y); m++; }
+        if (m) { cnt++; if ((s / m >= 0.5 ? 1 : -1) === p.c) ok++; } });
+      return cnt ? ok / cnt : NaN;
+    };
+    return { trees, inBag, proba, oob };
+  }
+
+  // ---------- k najbliższych sąsiadów; scale — mnożnik osi x (do pokazania wpływu skali cech)
+  function knnQuery(pts, q, k, p = 2, sx = 1) {
+    const d = pts.map((t, i) => {
+      const dx = Math.abs(t.x - q.x) * sx, dy = Math.abs(t.y - q.y);
+      const v = p === Infinity ? Math.max(dx, dy) : p === 1 ? dx + dy : Math.hypot(dx, dy);
+      return [v, i];
+    });
+    d.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    return d.slice(0, k);
+  }
+  function knnProba(pts, q, k, p = 2, sx = 1, weighted = false) {
+    const nb = knnQuery(pts, q, k, p, sx); let s = 0, w = 0;
+    for (const [d, i] of nb) { const wi = weighted ? 1 / Math.max(d, 1e-9) : 1; w += wi; if (pts[i].c === 1) s += wi; }
+    return s / w;
+  }
+
+  // ---------- Perceptron wielowarstwowy: wyjście softmax (2 klasy), entropia krzyżowa, SGD z minipaczkami, L2
+  const ACT = {
+    tanh: { f: z => Math.tanh(z), d: (z, a) => 1 - a * a },
+    sigmoid: { f: z => 1 / (1 + Math.exp(-z)), d: (z, a) => a * (1 - a) },
+    relu: { f: z => (z > 0 ? z : 0), d: z => (z > 0 ? 1 : 0) },
+    linear: { f: z => z, d: () => 1 },
+  };
+  class MLP {
+    constructor(sizes, act = "tanh", seed = 1) {
+      this.sizes = sizes; this.act = act; this.R = ML.rng(seed);
+      this.W = []; this.b = [];
+      for (let l = 1; l < sizes.length; l++) {
+        const nin = sizes[l - 1], nout = sizes[l];
+        const sd = act === "relu" && l < sizes.length - 1 ? Math.sqrt(2 / nin) : Math.sqrt(2 / (nin + nout));
+        this.W.push(Array.from({ length: nout }, () => Array.from({ length: nin }, () => this.R.n() * sd)));
+        this.b.push(new Array(nout).fill(act === "relu" && l < sizes.length - 1 ? 0.01 : 0));
+      }
+    }
+    // zwraca {Z, A}; A[0] = x, A[L] = softmax
+    forward(x) {
+      const Z = [], A = [x], L = this.W.length, g = ACT[this.act].f;
+      for (let l = 0; l < L; l++) {
+        const W = this.W[l], b = this.b[l], a = A[l], z = new Array(W.length);
+        for (let j = 0; j < W.length; j++) { let s = b[j]; const Wj = W[j]; for (let i = 0; i < a.length; i++) s += Wj[i] * a[i]; z[j] = s; }
+        Z.push(z);
+        if (l === L - 1) { const m = Math.max(...z), e = z.map(v => Math.exp(v - m)), S = e.reduce((p, q) => p + q, 0); A.push(e.map(v => v / S)); }
+        else A.push(z.map(g));
+      }
+      return { Z, A };
+    }
+    proba(x, y) { return this.forward([x, y]).A[this.W.length][1]; }   // p(klasa +1)
+    // gradienty dla minipaczki (średnia) — zwraca {gW, gb, loss}
+    grad(batch) {
+      const L = this.W.length, dg = ACT[this.act].d;
+      const gW = this.W.map(W => W.map(r => r.map(() => 0))), gb = this.b.map(b => b.map(() => 0));
+      let loss = 0;
+      for (const p of batch) {
+        const { Z, A } = this.forward([p.x, p.y]), t = p.c === 1 ? 1 : 0;
+        loss -= Math.log(Math.max(A[L][t], 1e-12));
+        let delta = A[L].map((v, k) => v - (k === t ? 1 : 0));
+        for (let l = L - 1; l >= 0; l--) {
+          const a = A[l];
+          for (let j = 0; j < delta.length; j++) { gb[l][j] += delta[j]; const r = gW[l][j]; for (let i = 0; i < a.length; i++) r[i] += delta[j] * a[i]; }
+          if (l > 0) { const W = this.W[l], nd = new Array(a.length).fill(0);
+            for (let i = 0; i < a.length; i++) { let s = 0; for (let j = 0; j < delta.length; j++) s += W[j][i] * delta[j]; nd[i] = s * dg(Z[l - 1][i], a[i]); }
+            delta = nd; }
+        }
+      }
+      const m = batch.length;
+      gW.forEach(G => G.forEach(r => r.forEach((_, i) => (r[i] /= m)))); gb.forEach(g => g.forEach((_, j) => (g[j] /= m)));
+      return { gW, gb, loss: loss / m };
+    }
+    step(batch, eta, lambda = 0) {
+      const { gW, gb, loss } = this.grad(batch);
+      for (let l = 0; l < this.W.length; l++) {
+        const W = this.W[l];
+        for (let j = 0; j < W.length; j++) { for (let i = 0; i < W[j].length; i++) W[j][i] -= eta * (gW[l][j][i] + lambda * W[j][i]); this.b[l][j] -= eta * gb[l][j]; }
+      }
+      return { gW, loss };
+    }
+    loss(pts, lambda = 0) {
+      let s = 0; for (const p of pts) { const q = this.proba(p.x, p.y); s -= Math.log(Math.max(p.c === 1 ? q : 1 - q, 1e-12)); }
+      let r = 0; if (lambda) this.W.forEach(W => W.forEach(row => row.forEach(v => (r += v * v))));
+      return s / pts.length + lambda / 2 * r;
+    }
+    acc(pts) { let ok = 0; for (const p of pts) if ((this.proba(p.x, p.y) >= 0.5 ? 1 : -1) === p.c) ok++; return ok / pts.length; }
+  }
+
+  return { impurity, bestSplit, buildTree, leafOf, treeProba, leaves, treeDepth, buildForest, knnQuery, knnProba, ACT, MLP };
+})();
+if (typeof module !== "undefined") module.exports = ML2;
 </script>
 <script>
 // Miniatury rysowane tymi samymi funkcjami co strony
@@ -501,6 +712,26 @@ document.querySelectorAll("canvas[data-thumb]").forEach(cv => {
     } else if (t === "overfit") {
       const d = ML.gen.moons(30, 2, 0.28), m = ML.makePolyModel(d, 9, 1e-4);
       P.heat(m.f, v => tint(v, 3), 3); P.contour(P.sample(m.f, 50), 0, { width: 1.6 }); d.forEach(p => P.point(p, { r: 3 }));
+    } else if (t === "tree" || t === "forest") {
+      const d = ML.gen.moons(60, 2, 0.25);
+      const f = t === "tree" ? (() => { const tr = ML2.buildTree(d, { maxDepth: 4 }); return (x, y) => ML2.treeProba(tr, x, y); })()
+        : (() => { const F = ML2.buildForest(d, { nTrees: 30, seed: 2 }); return (x, y) => F.proba(x, y); })();
+      P.heat(f, p => probTint(Math.min(0.97, Math.max(0.03, p))), 3); P.contour(P.sample(f, 60), 0.5, { width: 1.6 }); d.forEach(p => P.point(p, { r: 3 }));
+    } else if (t === "knn") {
+      const d = ML.gen.moons(60, 2, 0.25), f = (x, y) => ML2.knnProba(d, { x, y }, 5);
+      P.heat(f, p => probTint(Math.min(0.97, Math.max(0.03, p))), 3); d.forEach(p => P.point(p, { r: 3 }));
+      const q = { x: 0.3, y: 0.1 }, nb = ML2.knnQuery(d, q, 5), g = P.ctx; g.strokeStyle = COL.acc; g.lineWidth = 1.5; g.beginPath(); g.arc(P.X(q.x), P.Y(q.y), P.X(q.x + nb[4][0]) - P.X(q.x), 0, 7); g.stroke();
+    } else if (t === "mlp") {
+      const d = ML.gen.circles(80, 2, 0.2), m = new ML2.MLP([2, 5, 2], "tanh", 1);
+      for (let e = 0; e < 150; e++) for (let s = 0; s < d.length; s += 10) m.step(d.slice(s, s + 10), 0.3);
+      const f = (x, y) => m.proba(x, y); P.heat(f, p => probTint(Math.min(0.97, Math.max(0.03, p))), 3); P.contour(P.sample(f, 50), 0.5, { width: 1.6 }); d.forEach(p => P.point(p, { r: 3 }));
+    } else if (t === "backprop") {
+      const g = P.ctx, X = [-2.2, 0, 2.2], Y = [1.2, -1.2];
+      g.lineWidth = 1.5;
+      for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { g.strokeStyle = "#9C98B0"; g.beginPath(); g.moveTo(P.X(X[0]), P.Y(Y[i])); g.lineTo(P.X(X[1]), P.Y(Y[j])); g.stroke();
+        g.strokeStyle = COL.acc; g.beginPath(); g.moveTo(P.X(X[1]), P.Y(Y[i])); g.lineTo(P.X(X[2]), P.Y(Y[j])); g.stroke(); }
+      for (const x of X) for (const y of Y) { g.fillStyle = "#fff"; g.strokeStyle = x === 2.2 ? COL.acc : COL.ink; g.lineWidth = 1.8; g.beginPath(); g.arc(P.X(x), P.Y(y), 7, 0, 7); g.fill(); g.stroke(); }
+      P.arrow(1.8, 2.4, -0.6, 2.4, COL.acc, 2);
     } else if (t === "kernel") {
       const d = ML.gen.xor(60, 3), m = ML.smo(d, 10, ML.kernels.rbf(1));
       const f = (x, y) => m.decision({ x, y }); P.heat(f, v => tint(v, 1.6), 3); P.contour(P.sample(f, 50), 0, { width: 1.6 }); d.forEach(p => P.point(p, { r: 3 }));
