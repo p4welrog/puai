@@ -1143,6 +1143,7 @@ const cP = $("#cPar");
 const cDexp = slider2(cP, { label: "wymiar d w eksperymencie", min: 2, max: 40, step: 1, value: 10, digits: 0 });
 const cRow = document.createElement("div"); cRow.className = "row"; cP.appendChild(cRow);
 const cRun = button(cRow, "Uruchom eksperyment", () => runCover(), true);
+button(cRow, "Wyczyść wyniki", () => { coverExp = {}; drawC(); });
 const cN = slider2(cP, { label: "liczba próbek uczących n", min: 10, max: 80, step: 1, value: 40, digits: 0, on: debounce(() => drawC(), 80) });
 const cLam = slider2(cP, { label: "regularyzacja L2 λ (lewy koniec = 0)", min: 1e-4, max: 10, log: true, value: 1e-4, digits: 3, on: debounce(() => drawC(), 80) });
 const cSig = seg(cP, [["flat", "sygnał rozłożony równo na 200 cech"], ["decay", "sygnał w pierwszych cechach"]], "flat", () => drawC()); cSig.el = cP.lastElementChild;
@@ -1170,7 +1171,7 @@ function separable(X, y) { // programowanie liniowe: czy istnieje w z y_i w·x_i
 }
 function runCover() {
   const d = Math.round(cDexp.get()), ratios = [0.5, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.5, 4], trials = 60, res = [];
-  let i = 0; cRun.disabled = true; const RR = ML.rng(11 + d);
+  delete coverExp[d]; let i = 0; cRun.disabled = true; const RR = ML.rng(Math.floor(Math.random() * 1e9));   // każde uruchomienie to nowe losowanie
   const stepFn = () => {
     const t0 = performance.now();
     while (i < ratios.length && performance.now() - t0 < 40) {
@@ -1222,10 +1223,14 @@ function drawC() {
   if (k === "cover") {
     const ratios = Array.from({ length: 161 }, (_, i) => i * 4 / 160), cols = [COL.muted, COL.ok, COL.pos, COL.acc, COL.ink], dims = [2, 5, 10, 50, 200];
     const series = dims.map((d, i) => ({ x: ratios, y: ratios.map(r => coverP(Math.max(1, Math.round(r * d)), d)), color: cols[i], label: `d = ${d}`, width: 2 }));
-    for (const [d, res] of Object.entries(coverExp)) series.push({ x: res.map(r => r[0]), y: res.map(r => r[1]), color: COL.neg, dotsOnly: true, label: `eksperyment d = ${d}` });
+    // eksperymenty: każdy wymiar ma swój kolor, a obok kropek przerywana krzywa teorii dla tego samego d
+    const ecol = ["#DC2626", "#B45309", "#0E7490", "#BE185D", "#4D7C0F", "#7C2D12"];
+    Object.entries(coverExp).forEach(([d, res], j) => { const col = ecol[j % ecol.length], dd = +d;
+      series.push({ x: ratios, y: ratios.map(r => coverP(Math.max(1, Math.round(r * dd)), dd)), color: col, dash: [5, 4], width: 1.4 });
+      series.push({ x: res.map(r => r[0]), y: res.map(r => r[1]), color: col, dotsOnly: true, label: `eksperyment d = ${d}` }); });
     lineChart($("#cMain"), series, { xmin: 0, xmax: 4, ymin: 0, ymax: 1.05, xlabel: "n / d (liczba punktów na wymiar)", ylabel: "P(rozdzielne)", vlines: [{ x: 2, label: "n = 2d" }] });
     eq.innerHTML = `P(n punktów w d wymiarach jest liniowo rozdzielnych) = 2<sup>1−n</sup> Σ<sub>k=0…d−1</sub> C(n−1, k)`
-      + `<span class="sub">Cover (1965): punkty w położeniu ogólnym, losowe etykiety ±1, hiperpłaszczyzna przez początek układu (z obciążeniem zastąp d przez d + 1). Dla n = 2d prawdopodobieństwo wynosi dokładnie 1/2. Czerwone kropki: eksperyment — losowe punkty N(0, I), rozdzielność sprawdzana programowaniem liniowym (60 zbiorów na punkt).</span>`;
+      + `<span class="sub">Cover (1965): punkty w położeniu ogólnym, losowe etykiety ±1, hiperpłaszczyzna przez początek układu (z obciążeniem zastąp d przez d + 1). Dla n = 2d prawdopodobieństwo wynosi dokładnie 1/2. Kropki: eksperyment — losowe punkty N(0, I), rozdzielność sprawdzana programowaniem liniowym (60 zbiorów na punkt); przerywana krzywa w tym samym kolorze to teoria dla tego d. Wyniki dla różnych d zostają na wykresie do porównania; ponowne uruchomienie dla tego samego d zastępuje poprzedni wynik nowym losowaniem.</span>`;
     cap.textContent = "Ile losowych etykiet może „zapamiętać” model liniowy? Odsetek zbiorów, które da się idealnie dopasować (teoria), dla n = 1 … 4d:";
     const ns = Array.from({ length: 100 }, (_, i) => i + 1), d = Math.round(cDexp.get());
     lineChart($("#cCurve"), [{ x: ns, y: ns.map(n => coverP(n, d)), color: COL.acc, label: `d = ${d}` }], { ymin: 0, ymax: 1.05, xlabel: "liczba punktów n", vlines: [{ x: 2 * d, label: "2d" }] });
