@@ -75,6 +75,7 @@ canvas.mini { display: block; width: 100%; height: 130px; }
 /* ramka z treścią twierdzenia */
 details.thm { margin-top: 12px; padding: 10px 16px 12px; border: 1px solid var(--line); border-left: 4px solid var(--ok); border-radius: 0 6px 6px 0; background: #fff; font-size: 0.95rem; line-height: 1.5; }
 details.thm > summary { cursor: pointer; font-weight: 700; color: var(--ok); list-style: revert; }
+details.thm.hess { border-left-color: var(--accent); } details.thm.hess > summary { color: var(--accent); }
 details.thm.emp { border-left-color: #B45309; } details.thm.emp > summary { color: #B45309; }
 details.thm p { margin: 8px 0 0; } details.thm .lbl { font-weight: 700; color: var(--ink); }
 details.thm .src { color: var(--muted); font-size: 0.88em; }
@@ -181,6 +182,16 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
   <section class="stage">
     <canvas class="big" id="dMain"></canvas>
     <div class="equation" id="dEq"></div>
+    <details class="thm hess" id="dHess" open>
+      <summary>Czym jest hesjan?</summary>
+      <p><b>Hesjan</b> H to macierz drugich pochodnych kosztu: H<sub>ij</sub> = ∂²f / ∂θ<sub>i</sub>∂θ<sub>j</sub>. Dla jednego parametru to po prostu f″ — mówi, czy funkcja wygina się w górę (f″ &gt; 0), czy w dół (f″ &lt; 0).</p>
+      <p>Przy d parametrach krzywizna zależy od kierunku. Po przesunięciu o wektor v koszt zmienia się o<br>
+      f(θ + v) ≈ f(θ) + ∇f·v + ½·v<sup>T</sup>Hv.<br>
+      W punkcie krytycznym ∇f = 0, więc kształt otoczenia opisuje sam człon ½·v<sup>T</sup>Hv.</p>
+      <p>H jest symetryczna, więc ma d prostopadłych <b>kierunków własnych</b> u<sub>i</sub>. Wzdłuż każdego z nich koszt zmienia się jak ½·λ<sub>i</sub>·t², gdzie λ<sub>i</sub> to <b>wartość własna</b> — krzywizna w tym kierunku. To dokładnie krzywe z „wachlarza parabol” i pogrubione linie na powierzchni 3D.</p>
+      <p>Wszystkie λ<sub>i</sub> &gt; 0 → <b style="color:var(--ok)">minimum lokalne</b>; wszystkie λ<sub>i</sub> &lt; 0 → maksimum; różne znaki → <b style="color:var(--neg)">punkt siodłowy</b>. Liczba ujemnych λ<sub>i</sub> (indeks) mówi, iloma niezależnymi kierunkami można zejść niżej.</p>
+      <p><span class="lbl">Przykład:</span> f(x, y) = x² − y² ma H = [[2, 0], [0, −2]], czyli λ = 2 i −2 → siodło (taki kształt pokazuje widok 3D przy μ = 0, gdy jedna wartość własna jest ujemna).</p>
+    </details>
     <details class="sym" id="dSym" open></details>
     <details class="thm" id="dThm" open></details>
     <p class="cap" id="dCap"></p>
@@ -833,16 +844,18 @@ function histChart(cv, values, o = {}) {
   const lo = o.lo ?? Math.min(...values), hi = o.hi ?? Math.max(...values), cnt = new Array(nb).fill(0);
   for (const v of values) { const k = Math.floor((v - lo) / (hi - lo) * nb); if (k >= 0 && k < nb) cnt[k]++; else if (v === hi) cnt[nb - 1]++; }
   const dens = cnt.map(c => (values.length ? c / (values.length * (hi - lo) / nb) : 0));
-  const top = Math.max(o.ymax ?? 0, ...dens, ...(o.curve ? Array.from({ length: 200 }, (_, i) => o.curve(lo + (hi - lo) * (i + 0.5) / 200)) : [])) * 1.08 || 1;
+  const top = o.yfix ? o.yfix / 1.08 : Math.max(o.ymax ?? 0, ...dens, ...(o.curve ? Array.from({ length: 200 }, (_, i) => o.curve(lo + (hi - lo) * (i + 0.5) / 200)) : [])) * 1.08 || 1;
   const X = v => L + (W - L - Rm) * (v - lo) / (hi - lo), Y = v => H - B - (H - T - B) * v / top;
   if (o.shade) { g.fillStyle = o.shade.color || "rgba(124,58,237,0.10)"; g.fillRect(X(Math.max(lo, o.shade.a)), T, X(Math.min(hi, o.shade.b)) - X(Math.max(lo, o.shade.a)), H - T - B); }
   const bw = (W - L - Rm) / nb;
-  cnt.forEach((c, i) => { const v = lo + (hi - lo) * (i + 0.5) / nb; g.fillStyle = o.colorFn ? o.colorFn(v) : (o.color || COL.acc); const h = H - B - Y(dens[i]); g.fillRect(L + i * bw + 0.5, Y(dens[i]), Math.max(1, bw - 1), h); });
+  cnt.forEach((c, i) => { const v = lo + (hi - lo) * (i + 0.5) / nb; g.fillStyle = o.colorFn ? o.colorFn(v) : (o.color || COL.acc); const yv = Math.max(T, Y(dens[i])); g.fillRect(L + i * bw + 0.5, yv, Math.max(1, bw - 1), H - B - yv); });
   if (o.curve) { g.strokeStyle = COL.ink; g.lineWidth = 2; g.beginPath(); for (let i = 0; i <= 300; i++) { const v = lo + (hi - lo) * i / 300, y = Y(o.curve(v)); i ? g.lineTo(X(v), y) : g.moveTo(X(v), y); } g.stroke(); }
   g.strokeStyle = COL.line; g.lineWidth = 1; g.beginPath(); g.moveTo(L, T); g.lineTo(L, H - B); g.lineTo(W - Rm, H - B); g.stroke();
   g.fillStyle = COL.muted; g.font = "11px system-ui"; g.textAlign = "center";
   const step = o.tick || (hi - lo) / 6; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) g.fillText(fmt(v, Math.abs(step) < 1 ? (step < 0.1 ? 2 : 1) : 0), X(v), H - B + 14);
   if (o.xlabel) g.fillText(o.xlabel, (L + W) / 2, H - 4);
+  if (o.yfix) { g.textAlign = "right"; for (let v = 0; v <= o.yfix + 1e-9; v += 0.1) { const y = Y(v); g.fillText(fmt(v, 1), L - 5, y + 4); if (v > 0) { g.strokeStyle = "#EFEEF4"; g.lineWidth = 1; g.beginPath(); g.moveTo(L, y); g.lineTo(W - Rm, y); g.stroke(); } } g.textAlign = "center"; }
+  if (o.ylabel) { g.save(); g.translate(11, (T + H - B) / 2); g.rotate(-Math.PI / 2); g.textAlign = "center"; g.fillText(o.ylabel, 0, 0); g.restore(); }
   for (const v of o.vlines || []) { if (v.x < lo || v.x > hi) continue; g.strokeStyle = v.color || COL.ink; g.setLineDash([5, 4]); g.lineWidth = 1.5; g.beginPath(); g.moveTo(X(v.x), T); g.lineTo(X(v.x), H - B); g.stroke(); g.setLineDash([]); g.fillStyle = v.color || COL.ink; g.font = "600 12px system-ui"; g.textAlign = v.align || "left"; g.fillText(v.label || "", X(v.x) + (v.align === "right" ? -4 : 4), T + 12 + (v.dy || 0)); g.font = "11px system-ui"; g.textAlign = "center"; }
   return { g, W, H, X, Y };
 }
@@ -1672,7 +1685,7 @@ function getSaddle() {
 }
 function drawD() {
   const k = dSel.get(), eq = $("#dEq"), cap = $("#dCap");
-  showThm("#dThm", k); showSym("#dSym", k); showCtl([dD, dMu], k === "saddle"); sView.el.hidden = sRow.hidden = k !== "saddle"; dH.el.hidden = dL2.el.hidden = dRow.hidden = k !== "slice";
+  showThm("#dThm", k); showSym("#dSym", k); showCtl([dD, dMu], k === "saddle"); sView.el.hidden = sRow.hidden = $("#dHess").hidden = k !== "saddle"; dH.el.hidden = dL2.el.hidden = dRow.hidden = k !== "slice";
   if (k === "saddle") {
     const d = Math.max(1, Math.round(dD.get())), mu = dMu.get(), ev = getEv(d);
     const neg = ev.filter(v => v + mu < 0).length, shifted = ev.map(v => v + mu);
@@ -1684,9 +1697,9 @@ function drawD() {
     else {
     const semi = x => { const y = x - mu; return Math.abs(y) < 2 ? Math.sqrt(4 - y * y) / (2 * Math.PI) : 0; };
     if (shifted && d < 30) { // mało wartości własnych: rysuj jako pionowe kreski
-      const hc = histChart($("#dMain"), [], { lo: -3, hi: 6, curve: semi, tick: 1, xlabel: "wartości własne hesjanu w punkcie krytycznym (kreski) i rozkład dla d → ∞ (krzywa)", vlines: [{ x: 0, label: "0" }] });
+      const hc = histChart($("#dMain"), [], { lo: -3, hi: 6, yfix: 0.7, ylabel: "gęstość (krzywa); kreski: tylko położenie",  curve: semi, tick: 1, xlabel: "wartości własne hesjanu w punkcie krytycznym (kreski) i rozkład dla d → ∞ (krzywa)", vlines: [{ x: 0, label: "0" }] });
       for (const v of shifted) { hc.g.strokeStyle = v < 0 ? COL.neg : COL.ok; hc.g.lineWidth = 4; hc.g.beginPath(); hc.g.moveTo(hc.X(v), hc.Y(0)); hc.g.lineTo(hc.X(v), hc.Y(0.2)); hc.g.stroke(); }
-    } else if (shifted) histChart($("#dMain"), shifted, { lo: -3, hi: 6, bins: 90, colorFn: v => (v < 0 ? COL.neg : COL.ok), curve: semi, tick: 1, xlabel: "wartości własne hesjanu w punkcie krytycznym", vlines: [{ x: 0, label: "0" }] });
+    } else if (shifted) histChart($("#dMain"), shifted, { lo: -3, hi: 6, bins: 3 * Math.max(3, Math.min(30, Math.round(9 / 4 * d / 18))), yfix: 0.7, ylabel: "gęstość wartości własnych", colorFn: v => (v < 0 ? COL.neg : COL.ok), curve: semi, tick: 1, xlabel: "wartości własne hesjanu w punkcie krytycznym", vlines: [{ x: 0, label: "0" }] });
     else { const vals = []; for (let i = 0; i < 4000; i++) { const u = R.u(); // próbkowanie półokręgu do ilustracji przy d > 400
         let x; do { x = -2 + 4 * R.u(); } while (R.u() * (1 / Math.PI) > Math.sqrt(4 - x * x) / (2 * Math.PI)); vals.push(x + mu); }
       histChart($("#dMain"), vals, { lo: -3, hi: 6, bins: 90, colorFn: v => (v < 0 ? COL.neg : COL.ok), curve: semi, tick: 1, xlabel: "wartości własne (rozkład dla d → ∞; liczba ujemnych policzona dokładnie)", vlines: [{ x: 0, label: "0" }] }); }
