@@ -120,7 +120,7 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
   </aside>
   <section class="tryit panel"><h2>Spróbuj</h2><ul>
     <li><b>Objętość:</b> porównaj rysunki dla d = 1, 2, 3 z histogramami dla tych samych d — histogram to jedyny „rysunek”, jaki zostaje dla d &gt; 3. Przy d = 2 kula zajmuje 79% kwadratu, przy d = 3 — 52%, przy d = 10 — 0,25%, przy d = 20 — 2,5·10⁻⁸. Losowe punkty z sześcianu prawie zawsze leżą „w narożnikach”, daleko od środka.</li>
-    <li><b>Skorupa:</b> ustaw ε = 0,05 i zwiększaj d. Przy d = 100 ponad 99% objętości kuli leży w cienkiej skorupie przy brzegu.</li>
+    <li><b>Skorupa:</b> ustaw ε = 0,05 i obejrzyj rysunki dla d = 1, 2, 3 (5%, 9,75%, 14,3% punktów w skorupie), potem zwiększaj d. Przy d = 100 ponad 99% objętości kuli leży w cienkiej skorupie przy brzegu.</li>
     <li><b>Bańka gaussowska:</b> gęstość N(0, I) jest największa w zerze, a jednak przy d = 100 żadna z 2000 próbek nie leży bliżej niż ok. 8 od środka — wszystkie mają normę ≈ √d. Typowy punkt to nie punkt najbardziej prawdopodobny.</li>
     <li><b>Ortogonalność:</b> przy d = 1000 cosinus kąta między dwoma losowymi wektorami prawie nigdy nie przekracza 0,1 — losowe kierunki są prawie prostopadłe, więc przestrzeń mieści ogromnie wiele „prawie niezależnych” kierunków.</li>
     <li><b>Odległości:</b> najbliższy i najdalszy punkt są coraz bardziej podobnie odlegli (to samo zjawisko co w k-NN).</li>
@@ -940,7 +940,7 @@ for (const v of [1, 2, 3, 10, 100, 1000]) button(aQuick, "d = " + v, () => { aD.
 const aEps = slider2(aP, { label: "grubość skorupy ε", min: 0.01, max: 0.5, step: 0.01, value: 0.05, on: debounce(() => drawA(), 30) });
 const aView = seg(aP, [["pic", "rysunek (d ≤ 3)"], ["hist", "histogram odległości"]], "pic", () => drawA(), "Widok"); aView.el = aP.lastElementChild;
 const aRow = document.createElement("div"); aRow.className = "row"; aP.appendChild(aRow);
-button(aRow, "Losuj ponownie", () => { R = ML.rng(Math.floor(Math.random() * 1e9)); volCache = null; drawA(); });
+button(aRow, "Losuj ponownie", () => { R = ML.rng(Math.floor(Math.random() * 1e9)); volCache = null; ballCache = null; drawA(); });
 // punkty z sześcianu [−1, 1]^d zapamiętane, żeby obrót i przełączanie widoku nie losowały ich od nowa
 let volCache = null;
 function volPoints(d, N) {
@@ -948,10 +948,17 @@ function volPoints(d, N) {
   const pts = []; for (let i = 0; i < N; i++) { const c = new Float64Array(d); let s2 = 0; for (let j = 0; j < d; j++) { c[j] = 2 * R.u() - 1; s2 += c[j] * c[j]; } pts.push({ c, r: Math.sqrt(s2), j: 0.3 * (2 * R.u() - 1) }); }
   volCache = { d, pts }; return pts;
 }
+// punkty równomiernie w kuli jednostkowej (kierunek gaussowski × promień U^(1/d)); zapamiętane jak volPoints
+let ballCache = null;
+function ballPoints(d, N) {
+  if (ballCache && ballCache.d === d) return ballCache.pts;
+  const pts = []; for (let i = 0; i < N; i++) { const v = new Float64Array(d); let n2 = 0; for (let j = 0; j < d; j++) { v[j] = R.n(); n2 += v[j] * v[j]; } const r = Math.pow(R.u(), 1 / d), f = r / Math.sqrt(n2); for (let j = 0; j < d; j++) v[j] *= f; pts.push({ c: v, r, j: 0.3 * (2 * R.u() - 1) }); }
+  ballCache = { d, pts }; return pts;
+}
 // rysunek 3D: sześcian, kula, punkty; obrót myszą
 const V3 = { yaw: -0.6, pitch: 0.35 };
-function drawVol3(cv, pts) {
-  const { g, W, H } = setupCanvas(cv), s = Math.min(W, H) * 0.3, ca = Math.cos(V3.yaw), sa = Math.sin(V3.yaw), cb = Math.cos(V3.pitch), sb = Math.sin(V3.pitch);
+function drawVol3(cv, pts, shellEps = null) {   // shellEps ≠ null: widok skorupy (bez sześcianu)
+  const { g, W, H } = setupCanvas(cv), s = Math.min(W, H) * (shellEps === null ? 0.3 : 0.44), ca = Math.cos(V3.yaw), sa = Math.sin(V3.yaw), cb = Math.cos(V3.pitch), sb = Math.sin(V3.pitch);
   const pr = ([x, y, z]) => { const x1 = x * ca - y * sa, y1 = x * sa + y * ca, d = y1 * cb - z * sb, up = y1 * sb + z * cb; return [W / 2 + s * x1, H / 2 - s * up, d]; };
   const seg3 = (a, b, col, w = 1) => { const A = pr(a), B = pr(b); g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(B[0], B[1]); g.stroke(); };
   const circ = (f, col) => { g.strokeStyle = col; g.lineWidth = 1.2; g.beginPath(); for (let i = 0; i <= 96; i++) { const t = 2 * Math.PI * i / 96, q = pr(f(Math.cos(t), Math.sin(t))); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); } g.stroke(); };
@@ -959,17 +966,23 @@ function drawVol3(cv, pts) {
   const V = [-1, 1], E = [];
   for (const a of V) for (const b of V) { E.push([[-1, a, b], [1, a, b]], [[a, -1, b], [a, 1, b]], [[a, b, -1], [a, b, 1]]); }
   const depthE = e => (pr(e[0])[2] + pr(e[1])[2]) / 2;
-  E.filter(e => depthE(e) > 0).forEach(e => seg3(e[0], e[1], "#C9C5D8", 1));
+  if (shellEps === null) E.filter(e => depthE(e) > 0).forEach(e => seg3(e[0], e[1], "#C9C5D8", 1));
   const items = pts.map(q => ({ q, p: pr(q.c) })).sort((a, b) => b.p[2] - a.p[2]);
-  for (const it of items) { g.fillStyle = it.q.r <= 1 ? COL.pos : COL.neg; g.globalAlpha = 0.25 + 0.5 * (1 - (it.p[2] + 1.8) / 3.6); g.fillRect(it.p[0] - 1.6, it.p[1] - 1.6, 3.2, 3.2); }
+  for (const it of items) { g.fillStyle = shellEps === null ? (it.q.r <= 1 ? COL.pos : COL.neg) : (it.q.r >= 1 - shellEps ? COL.acc : "#9C98B0"); g.globalAlpha = 0.25 + 0.5 * (1 - (it.p[2] + 1.8) / 3.6); g.fillRect(it.p[0] - 1.6, it.p[1] - 1.6, 3.2, 3.2); }
   g.globalAlpha = 1;
-  circ((c, t) => [c, t, 0], "rgba(37,99,235,0.7)"); circ((c, t) => [c, 0, t], "rgba(37,99,235,0.5)"); circ((c, t) => [0, c, t], "rgba(37,99,235,0.5)");
-  E.filter(e => depthE(e) <= 0).forEach(e => seg3(e[0], e[1], COL.ink, 1.6));
+  if (shellEps === null) {
+    circ((c, t) => [c, t, 0], "rgba(37,99,235,0.7)"); circ((c, t) => [c, 0, t], "rgba(37,99,235,0.5)"); circ((c, t) => [0, c, t], "rgba(37,99,235,0.5)");
+    E.filter(e => depthE(e) <= 0).forEach(e => seg3(e[0], e[1], COL.ink, 1.6));
+  } else {
+    const r2 = 1 - shellEps;
+    circ((c, t) => [c, t, 0], COL.ink); circ((c, t) => [c, 0, t], "rgba(30,27,46,0.5)"); circ((c, t) => [0, c, t], "rgba(30,27,46,0.5)");
+    g.setLineDash([5, 4]); circ((c, t) => [r2 * c, r2 * t, 0], COL.acc); circ((c, t) => [r2 * c, 0, r2 * t], "rgba(124,58,237,0.6)"); g.setLineDash([]);
+  }
   g.fillStyle = COL.muted; g.font = "12px system-ui"; g.fillText("przeciągnij, aby obrócić", 10, H - 10);
 }
 { const cv = $("#aMain"); let drag = null;
-  cv.addEventListener("pointerdown", e => { if (!(aSel.get() === "vol" && aView.get() === "pic" && Math.round(aD.get()) === 3)) return; drag = [e.clientX, e.clientY]; cv.setPointerCapture(e.pointerId); });
-  cv.addEventListener("pointermove", e => { if (!drag) return; V3.yaw += (e.clientX - drag[0]) * 0.01; V3.pitch = Math.max(-1.4, Math.min(1.4, V3.pitch + (e.clientY - drag[1]) * 0.01)); drag = [e.clientX, e.clientY]; drawVol3(cv, volPoints(3, 3000)); });
+  cv.addEventListener("pointerdown", e => { if (!((aSel.get() === "vol" || aSel.get() === "shell") && aView.get() === "pic" && Math.round(aD.get()) === 3)) return; drag = [e.clientX, e.clientY]; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointermove", e => { if (!drag) return; V3.yaw += (e.clientX - drag[0]) * 0.01; V3.pitch = Math.max(-1.4, Math.min(1.4, V3.pitch + (e.clientY - drag[1]) * 0.01)); drag = [e.clientX, e.clientY]; if (aSel.get() === "vol") drawVol3(cv, volPoints(3, 3000)); else drawVol3(cv, ballPoints(3, 3000), aEps.get()); });
   cv.addEventListener("pointerup", () => (drag = null)); }
 const aCurves = {};
 const volFrac = d => Math.exp((d / 2) * Math.log(Math.PI) - lgamma(d / 2 + 1) - d * Math.LN2);
@@ -987,7 +1000,7 @@ function aCurve(kind) {
 }
 function drawA() {
   const k = aSel.get(), d = Math.round(aD.get()), eps = aEps.get(), cv = $("#aMain");
-  showCtl([aEps], k === "shell"); aView.el.hidden = k !== "vol"; showThm("#aThm", k); showSym("#aSym", k);
+  showCtl([aEps], k === "shell"); aView.el.hidden = k !== "vol" && k !== "shell"; showThm("#aThm", k); showSym("#aSym", k);
   const eq = $("#aEq"), cap = $("#aCap");
   if (k === "vol") {
     const f = volFrac(d), N = 3000, pts = volPoints(d, N), pic = aView.get() === "pic" && d <= 3;
@@ -1019,10 +1032,33 @@ function drawA() {
     lineChart($("#aCurve"), [{ x: ds, y: ds.map(volFrac), color: COL.pos }], { logx: true, logy: true, ymin: -12, ymax: 0, xlabel: "wymiar d", mark: { x: d, y: f } });
   }
   if (k === "shell") {
-    const f = 1 - Math.pow(1 - eps, d), rs = Array.from({ length: 4000 }, () => Math.pow(R.u(), 1 / d));
-    histChart($("#aMain"), rs, { lo: 0, hi: 1, bins: 50, color: COL.acc, shade: { a: 1 - eps, b: 1 }, xlabel: "odległość od środka r (punkty równomiernie w kuli jednostkowej)", curve: r => d * Math.pow(r, d - 1), ymax: 0, vlines: [{ x: 1 - eps, label: `skorupa ε = ${fmt(eps)}`, align: "right" }] });
-    eq.innerHTML = `d = ${d}: skorupa grubości ${fmt(eps)} zawiera <span class="big">${fmt(100 * f, 2)}%</span> objętości kuli`
-      + `<span class="sub">Udział = 1 − (1 − ε)<sup>d</sup>. Histogram 4000 punktów losowanych równomiernie z kuli; czarna krzywa to gęstość promienia d·r<sup>d−1</sup>. W wielu wymiarach „środek” kuli jest praktycznie pusty.</span>`;
+    const f = 1 - Math.pow(1 - eps, d), N = 3000, pic = aView.get() === "pic" && d <= 3, pts = d <= 3 ? ballPoints(d, N) : null;
+    aView.el.querySelectorAll("button")[0].disabled = d > 3;
+    const inS = q => q.r >= 1 - eps, colS = q => (inS(q) ? COL.acc : "#9C98B0");
+    if (pic && d === 1) {
+      const P = plotFor(cv, { xmin: -1.3, xmax: 1.3, ymin: -0.75, ymax: 0.75 }); P.clear(); const g = P.ctx;
+      g.fillStyle = "rgba(124,58,237,0.12)"; for (const a of [-1, 1 - eps]) g.fillRect(P.X(a), P.Y(0.35), P.X(a + eps) - P.X(a), P.Y(-0.35) - P.Y(0.35));
+      pts.forEach(q => { g.fillStyle = colS(q); g.globalAlpha = 0.6; g.fillRect(P.X(q.c[0]) - 1.5, P.Y(q.j) - 1.5, 3, 3); }); g.globalAlpha = 1;
+      g.strokeStyle = COL.ink; g.lineWidth = 3; g.beginPath(); g.moveTo(P.X(-1), P.Y(0)); g.lineTo(P.X(1), P.Y(0)); g.stroke();
+      P.text("„skorupa” odcinka to dwa krańcowe kawałki o długości ε", P.W / 2, P.Y(0.5), { align: "center", size: 14, weight: 600 });
+      P.text("punkty rozsunięte w pionie tylko dla czytelności", P.W / 2, P.Y(-0.55), { align: "center", size: 12, color: COL.muted });
+    } else if (pic && d === 2) {
+      const P = plotFor(cv, { xmin: -1.2, xmax: 1.2, ymin: -1.2, ymax: 1.2 }); P.clear(); const g = P.ctx;
+      g.fillStyle = "rgba(124,58,237,0.10)"; g.beginPath(); g.arc(P.X(0), P.Y(0), P.X(1) - P.X(0), 0, 7); g.arc(P.X(0), P.Y(0), P.X(1 - eps) - P.X(0), 0, 7, true); g.fill();
+      pts.forEach(q => { g.fillStyle = colS(q); g.globalAlpha = 0.65; g.fillRect(P.X(q.c[0]) - 1.5, P.Y(q.c[1]) - 1.5, 3, 3); }); g.globalAlpha = 1;
+      g.strokeStyle = COL.ink; g.lineWidth = 2; g.beginPath(); g.arc(P.X(0), P.Y(0), P.X(1) - P.X(0), 0, 7); g.stroke();
+      g.strokeStyle = COL.acc; g.setLineDash([5, 4]); g.beginPath(); g.arc(P.X(0), P.Y(0), P.X(1 - eps) - P.X(0), 0, 7); g.stroke(); g.setLineDash([]);
+    } else if (pic && d === 3) {
+      drawVol3(cv, pts, eps);
+    } else {
+      const rs = pts ? pts.map(q => q.r) : Array.from({ length: 4000 }, () => Math.pow(R.u(), 1 / d));
+      histChart($("#aMain"), rs, { lo: 0, hi: 1, bins: 50, color: COL.acc, shade: { a: 1 - eps, b: 1 }, xlabel: "odległość od środka r (punkty równomiernie w kuli jednostkowej)", curve: r => d * Math.pow(r, d - 1), ymax: 0, vlines: [{ x: 1 - eps, label: `skorupa ε = ${fmt(eps)}`, align: "right" }] });
+    }
+    const share = pts ? pts.filter(inS).length / pts.length : NaN;
+    const desc = pic ? (d === 1 ? "Fioletowe punkty leżą w „skorupie” odcinka — w dwóch krańcowych kawałkach; ich udział to dokładnie ε." : d === 2 ? "Fioletowe punkty leżą w pierścieniu o grubości ε przy brzegu koła; szare — we wnętrzu." : "Fioletowe punkty leżą w skorupie kuli (między sferą przerywaną a ciągłą), szare — we wnętrzu. Przeciągnij, aby obrócić.")
+      : "Histogram punktów losowanych równomiernie z kuli; czarna krzywa to gęstość promienia d·r<sup>d−1</sup>. W wielu wymiarach „środek” kuli jest praktycznie pusty.";
+    eq.innerHTML = `d = ${d}: skorupa grubości ${fmt(eps)} zawiera <span class="big">${fmt(100 * f, 2)}%</span> objętości kuli` + (pts ? ` &nbsp;(w próbie: ${fmt(100 * share, 1)}%)` : "")
+      + `<span class="sub">Udział = 1 − (1 − ε)<sup>d</sup>. ${desc}${d > 3 ? " Rysunek jest dostępny tylko dla d ≤ 3." : ""}</span>`;
     cap.textContent = `Udział skorupy grubości ε = ${fmt(eps)} w objętości kuli w funkcji d:`;
     const ds = intsLog(1, 1000, 80);
     lineChart($("#aCurve"), [{ x: ds, y: ds.map(dd => 1 - Math.pow(1 - eps, dd)), color: COL.acc }], { logx: true, ymin: 0, ymax: 1, xlabel: "wymiar d", mark: { x: d, y: f } });
