@@ -72,6 +72,12 @@ canvas.mini { display: block; width: 100%; height: 130px; }
   header.top { padding: 14px 16px 6px; } .tabs { padding: 0 14px; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+/* ramka z treścią twierdzenia */
+details.thm { margin-top: 12px; padding: 10px 16px 12px; border: 1px solid var(--line); border-left: 4px solid var(--ok); border-radius: 0 6px 6px 0; background: #fff; font-size: 0.95rem; line-height: 1.5; }
+details.thm > summary { cursor: pointer; font-weight: 700; color: var(--ok); list-style: revert; }
+details.thm.emp { border-left-color: #B45309; } details.thm.emp > summary { color: #B45309; }
+details.thm p { margin: 8px 0 0; } details.thm .lbl { font-weight: 700; color: var(--ink); }
+details.thm .src { color: var(--muted); font-size: 0.88em; }
 </style>
 <style>
 table.cm { border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 0.9rem; width: 100%; }

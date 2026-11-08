@@ -72,6 +72,12 @@ canvas.mini { display: block; width: 100%; height: 130px; }
   header.top { padding: 14px 16px 6px; } .tabs { padding: 0 14px; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+/* ramka z treścią twierdzenia */
+details.thm { margin-top: 12px; padding: 10px 16px 12px; border: 1px solid var(--line); border-left: 4px solid var(--ok); border-radius: 0 6px 6px 0; background: #fff; font-size: 0.95rem; line-height: 1.5; }
+details.thm > summary { cursor: pointer; font-weight: 700; color: var(--ok); list-style: revert; }
+details.thm.emp { border-left-color: #B45309; } details.thm.emp > summary { color: #B45309; }
+details.thm p { margin: 8px 0 0; } details.thm .lbl { font-weight: 700; color: var(--ink); }
+details.thm .src { color: var(--muted); font-size: 0.88em; }
 </style>
 <style>
 canvas.proof { display: block; width: 100%; height: 190px; }
@@ -103,6 +109,17 @@ canvas.proof { display: block; width: 100%; height: 190px; }
       </div>
     </div>
     <div class="equation" id="eq"></div>
+    <details class="thm" open id="thmN"><summary>Twierdzenie Novikoffa (1962)</summary>
+      <p>Niech (x<sub>1</sub>, y<sub>1</sub>), …, (x<sub>n</sub>, y<sub>n</sub>), y<sub>i</sub> ∈ {−1, 1}, i niech x̃<sub>i</sub> = (1, x<sub>i</sub>) oznacza wektor z dopisaną jedynką (obciążenie), ‖x̃<sub>i</sub>‖ ≤ R. Jeśli istnieje wektor u, ‖u‖ = 1, i liczba γ &gt; 0 takie, że y<sub>i</sub>·u·x̃<sub>i</sub> ≥ γ dla wszystkich i (dane rozdzielne z marginesem γ), to perceptron startujący z w = 0, z dowolnym η &gt; 0 i przy dowolnej kolejności prezentowania próbek, wykona co najwyżej (R/γ)² aktualizacji wag.</p>
+      <p><span class="lbl">Słowami:</span> jeśli klasy da się rozdzielić z zapasem, perceptron na pewno się zatrzyma — tym szybciej, im większy zapas γ w porównaniu z rozmiarem danych R. Liczba poprawek nie zależy ani od liczby próbek, ani od wymiaru, ani od η, ani od kolejności.</p>
+      <p><span class="lbl">Idea dowodu:</span> każda aktualizacja zwiększa w·u co najmniej o ηγ, więc po k aktualizacjach w·u ≥ kηγ; jednocześnie ‖w‖² rośnie najwyżej o η²R², więc ‖w‖ ≤ √k·ηR. Ponieważ w·u ≤ ‖w‖, mamy kγ ≤ √k·R, czyli k ≤ (R/γ)². Oba ograniczenia widać na wykresie poniżej.</p>
+      <p class="src">Twierdzenie nic nie mówi o danych nierozdzielnych i nie daje kryterium stopu (γ nie znamy z góry).</p>
+    </details>
+    <details class="thm" open id="thmFS" hidden><summary>Twierdzenie Freunda i Schapire’a (1999) — dane nierozdzielne</summary>
+      <p>Niech (x̃<sub>1</sub>, y<sub>1</sub>), (x̃<sub>2</sub>, y<sub>2</sub>), … będzie dowolnym ciągiem z ‖x̃<sub>i</sub>‖ ≤ R. Dla dowolnego u, ‖u‖ = 1, i γ &gt; 0 niech d<sub>i</sub> = max(0, γ − y<sub>i</sub>·u·x̃<sub>i</sub>) i D = √(Σ<sub>i</sub> d<sub>i</sub>²). Wtedy liczba pomyłek (aktualizacji) perceptronu startującego z w = 0 na tym ciągu wynosi najwyżej ((R + D)/γ)².</p>
+      <p><span class="lbl">Słowami:</span> nawet gdy idealne rozdzielenie nie istnieje, liczba pomyłek jest ograniczona — przez to, o ile dane naruszają margines γ (strata zawiasowa). Każde kolejne przejście przez dane dokłada jednak swoje naruszenia do D, więc ograniczenie rośnie z liczbą epok: zbieżności nie ma. Dlatego w praktyce używa się perceptronu kieszonkowego lub uśrednionego.</p>
+      <p class="src">Dla danych rozdzielnych można wziąć D = 0 i dostajemy twierdzenie Novikoffa.</p>
+    </details>
     <p class="hint" style="margin:12px 0 2px">Dowód na żywo w funkcji liczby aktualizacji k (wartości podzielone przez η). <b style="color:var(--ok)">Zielone</b>: w·u (ciągła) i dolne ograniczenie kγ (przerywana). <b style="color:var(--accent)">Fioletowe</b>: ‖w‖ (ciągła) i górne ograniczenie √k·R (przerywana). Pionowa linia: k<sub>max</sub> = (R/γ)².</p>
     <canvas class="proof" id="proof"></canvas>
     <p class="hint" style="margin:10px 0 2px">cos∠(w, u) (ciągła) i dolne ograniczenie √k·γ/R (przerywana); cosinus nie przekroczy 1, więc k ≤ (R/γ)².</p>
@@ -924,8 +941,9 @@ function stats(hid) {
   if (!hid) {
     rows.push(["R = max ‖(1, x)‖", fmt(R, 3)]);
     if (G.sep) rows.push(["γ (margines w przestrzeni z obciążeniem)", fmt(G.gamma, 4)], ["ograniczenie (R/γ)²", fmt((R / G.gamma) ** 2, 0)], ["k / ograniczenie", fmt(100 * k / (R / G.gamma) ** 2, 1) + "%"]);
-    else { const f = fsSeq() || { gamma: G.fs.gamma, D: 0, bound: (G.R / G.fs.gamma) ** 2 };
-      rows.push(["γ (wybrane dla ograniczenia)", fmt(f.gamma, 4)], ["D dla dotychczasowej sekwencji", fmt(f.D, 3)], ["Freund–Schapire ((R + D)/γ)²", fmt(f.bound, 0)], ["k / ograniczenie", fmt(100 * k / f.bound, 1) + "%"]); }
+    else { const f = fsSeq();
+      if (f) rows.push(["γ (wybrane dla ograniczenia)", fmt(f.gamma, 4)], ["D dla dotychczasowej sekwencji", fmt(f.D, 3)], ["Freund–Schapire ((R + D)/γ)²", fmt(f.bound, 0)], ["k / ograniczenie", fmt(100 * k / f.bound, 1) + "%"]);
+      else rows.push(["Freund–Schapire ((R + D)/γ)²", "— (liczone po starcie)"]); }
   }
   if (!G.sep || S.k > 0) {
     const avgW = S.visits ? S.sumW.map(v => v / S.visits) : [0, 0, 0];
@@ -939,6 +957,7 @@ function stats(hid) {
   else { st.className = "status"; st.textContent = "Uczenie trwa…"; }
   // równanie
   const e = $("#eq");
+  $("#thmFS").hidden = hid || !(G.u && !G.sep);
   if (hid) { e.innerHTML = `k = ${k} aktualizacji<span class="sub">Bez znajomości u i γ widzimy tylko rosnący licznik. Czy perceptron się zatrzyma? Twierdzenie gwarantuje to tylko dla danych rozdzielnych — a tego nie wiemy z góry.</span>`; return; }
   if (!G.u) { e.innerHTML = "—"; return; }
   if (G.sep) {

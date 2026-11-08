@@ -72,6 +72,12 @@ canvas.mini { display: block; width: 100%; height: 130px; }
   header.top { padding: 14px 16px 6px; } .tabs { padding: 0 14px; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+/* ramka z treścią twierdzenia */
+details.thm { margin-top: 12px; padding: 10px 16px 12px; border: 1px solid var(--line); border-left: 4px solid var(--ok); border-radius: 0 6px 6px 0; background: #fff; font-size: 0.95rem; line-height: 1.5; }
+details.thm > summary { cursor: pointer; font-weight: 700; color: var(--ok); list-style: revert; }
+details.thm.emp { border-left-color: #B45309; } details.thm.emp > summary { color: #B45309; }
+details.thm p { margin: 8px 0 0; } details.thm .lbl { font-weight: 700; color: var(--ink); }
+details.thm .src { color: var(--muted); font-size: 0.88em; }
 </style>
 <style>
 canvas.big { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: 62vh; touch-action: none; border-radius: 6px; }
@@ -96,6 +102,7 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
   <section class="stage">
     <canvas class="big" id="aMain"></canvas>
     <div class="equation" id="aEq"></div>
+    <details class="thm" id="aThm" open></details>
     <p class="cap" id="aCap"></p>
     <canvas class="curve" id="aCurve"></canvas>
   </section>
@@ -117,6 +124,7 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
   <section class="stage">
     <canvas class="big" id="bMain"></canvas>
     <div class="equation" id="bEq"></div>
+    <details class="thm" id="bThm" open></details>
     <p class="cap" id="bCap"></p>
     <canvas class="curve" id="bCurve"></canvas>
   </section>
@@ -137,6 +145,7 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
   <section class="stage">
     <canvas class="big" id="cMain"></canvas>
     <div class="equation" id="cEq"></div>
+    <details class="thm" id="cThm" open></details>
     <p class="cap" id="cCap"></p>
     <canvas class="curve" id="cCurve"></canvas>
   </section>
@@ -157,6 +166,7 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
   <section class="stage">
     <canvas class="big" id="dMain"></canvas>
     <div class="equation" id="dEq"></div>
+    <details class="thm" id="dThm" open></details>
     <p class="cap" id="dCap"></p>
     <canvas class="curve" id="dCurve"></canvas>
   </section>
@@ -784,7 +794,7 @@ function lineChart(cv, series, o = {}) {
   g.textAlign = "center"; if (o.xlabel) g.fillText(o.xlabel, (L + W) / 2, H - 4);
   if (o.ylabel) { g.save(); g.translate(12, (T + H - B) / 2); g.rotate(-Math.PI / 2); g.fillText(o.ylabel, 0, 0); g.restore(); }
   g.save(); g.beginPath(); g.rect(L, T - 2, W - L - Rm, H - T - B + 4); g.clip();
-  for (const v of o.vlines || []) { g.strokeStyle = v.color || COL.ink; g.setLineDash([4, 4]); g.lineWidth = 1.2; g.beginPath(); g.moveTo(X(v.x), T); g.lineTo(X(v.x), H - B); g.stroke(); g.setLineDash([]); if (v.label) { g.fillStyle = v.color || COL.ink; g.textAlign = "left"; g.fillText(v.label, X(v.x) + 4, T + 11); } }
+  for (const v of o.vlines || []) { g.strokeStyle = v.color || COL.ink; g.setLineDash([4, 4]); g.lineWidth = 1.2; g.beginPath(); g.moveTo(X(v.x), T); g.lineTo(X(v.x), H - B); g.stroke(); g.setLineDash([]); if (v.label) { g.fillStyle = v.color || COL.ink; g.textAlign = "left"; g.fillText(v.label, X(v.x) + 4, T + 28); } }
   for (const h of o.hlines || []) { g.strokeStyle = h.color || COL.muted; g.setLineDash([4, 4]); g.lineWidth = 1; g.beginPath(); g.moveTo(L, Y(h.y)); g.lineTo(W - Rm, Y(h.y)); g.stroke(); g.setLineDash([]); }
   for (const s of series) {
     g.strokeStyle = g.fillStyle = s.color || COL.acc; g.lineWidth = s.width || 2.2; g.setLineDash(s.dash || []);
@@ -822,6 +832,71 @@ function showCtl(list, on) { list.forEach(c => (c.el.closest(".ctl").hidden = !o
 // suwak zwraca obiekt z get/set; znajdź jego element (ostatni dodany .ctl)
 function slider2(root, o) { const s = slider(root, o); s.el = root.lastElementChild; return s; }
 
+
+// ======================================================================
+// Treść twierdzeń: [rodzaj, tytuł, treść formalna, słowami, źródło/uwaga]
+// rodzaj: "thm" — twierdzenie, "emp" — obserwacja / model (bez twierdzenia)
+// ======================================================================
+const THM = {
+  vol: ["thm", "Wzór: objętość kuli w d wymiarach",
+    "Kula o promieniu r w ℝ<sup>d</sup> ma objętość V<sub>d</sub>(r) = π<sup>d/2</sup> r<sup>d</sup> / Γ(d/2 + 1). Stąd dla kuli wpisanej w sześcian [−1, 1]<sup>d</sup>: V<sub>kula</sub>/V<sub>sześcian</sub> = π<sup>d/2</sup> / (Γ(d/2 + 1)·2<sup>d</sup>) → 0, i to szybciej niż wykładniczo.",
+    "Prawie cała objętość sześcianu leży poza wpisaną kulą — w 2<sup>d</sup> narożnikach, które są oddalone od środka o √d, podczas gdy środki ścian tylko o 1.",
+    "Klasyczny wzór geometryczny."],
+  shell: ["thm", "Fakt: objętość skorupy kuli",
+    "Dla kuli jednostkowej w ℝ<sup>d</sup> i 0 &lt; ε &lt; 1 udział objętości warstwy {x : 1 − ε ≤ ‖x‖ ≤ 1} wynosi 1 − (1 − ε)<sup>d</sup> ≥ 1 − e<sup>−εd</sup>.",
+    "Gdy d jest duże w porównaniu z 1/ε, prawie cała objętość kuli leży tuż przy jej brzegu. Losując punkt równomiernie z kuli, prawie na pewno trafimy w cienką skorupę.",
+    "Wynika wprost z V<sub>d</sub>(r) ∝ r<sup>d</sup>."],
+  gauss: ["thm", "Twierdzenie: koncentracja normy wektora gaussowskiego",
+    "Jeśli x ~ N(0, I<sub>d</sub>), to E‖x‖ = √d − O(1/√d), Var‖x‖ → 1/2, a dla każdego t &gt; 0: P(|‖x‖ − E‖x‖| ≥ t) ≤ 2 e<sup>−t²/2</sup> (nierówność koncentracyjna dla funkcji 1-lipschitzowskich wektora gaussowskiego, Tsirelson–Ibragimov–Sudakov).",
+    "Norma próbki prawie zawsze różni się od √d o mniej niż kilka jednostek, niezależnie od wymiaru. Próbki leżą na „bańce” o promieniu √d i stałej grubości, choć gęstość jest największa w zerze — bo objętość warstwy o promieniu r rośnie jak r<sup>d−1</sup>.",
+    "Praktycznie: interpolując między próbkami w przestrzeni ukrytej modelu generatywnego, trzeba „iść po bańce”, nie po prostej przez wnętrze."],
+  orth: ["thm", "Twierdzenie: losowe kierunki są prawie ortogonalne",
+    "Jeśli u, v są niezależne i równomiernie rozłożone na sferze jednostkowej w ℝ<sup>d</sup>, to E⟨u, v⟩ = 0, Var⟨u, v⟩ = 1/d oraz P(|⟨u, v⟩| ≥ t) ≤ 2 e<sup>−d t²/2</sup>.",
+    "Cosinus kąta między dwoma losowymi kierunkami jest rzędu 1/√d. Wniosek: w ℝ<sup>d</sup> można zmieścić wykładniczo wiele (rzędu e<sup>c·d·t²</sup>) wektorów, z których każde dwa mają |cos| &lt; t — choć dokładnie prostopadłych jest tylko d.",
+    "Ta sama nierówność koncentracyjna (miara na sferze, Lévy)."],
+  dist: ["thm", "Twierdzenie: koncentracja odległości (Beyer i in., 1999), postać uproszczona",
+    "Niech X<sub>1</sub>, …, X<sub>n</sub> i zapytanie Q będą niezależne, a D<sub>i</sub> = ‖X<sub>i</sub> − Q‖. Jeśli Var(D<sub>1</sub>) / (E D<sub>1</sub>)² → 0 przy d → ∞, to dla każdego ustalonego n: (D<sub>max</sub> − D<sub>min</sub>) / D<sub>min</sub> → 0 według prawdopodobieństwa.",
+    "Gdy względny rozrzut odległości maleje (dla cech niezależnych jak 1/√d), najbliższy i najdalszy punkt stają się prawie tak samo odlegli. „Najbliższy sąsiad” przestaje nieść informację.",
+    "Założenie nie zawsze jest spełnione: dane o małym wymiarze wewnętrznym (zakładka B) zachowują kontrast odległości."],
+  edge: ["thm", "Fakt: rozmiar sąsiedztwa (Hastie, Tibshirani, Friedman, rozdz. 2.5)",
+    "Dla danych równomiernych w [0, 1]<sup>d</sup> podsześcian zawierający ułamek r danych ma krawędź e<sub>d</sub>(r) = r<sup>1/d</sup>.",
+    "Żeby zebrać choćby 10% danych, „lokalne” sąsiedztwo musi w każdym wymiarze objąć większość zakresu cechy. Metody lokalne (k-NN, drzewa, jądra o małej szerokości) przestają być lokalne, a utrzymanie tej samej gęstości próbek wymaga ich wykładniczo wielu.",
+    "Wynika z objętości: r = e<sup>d</sup>."],
+  proj: ["thm", "Twierdzenie Diaconisa–Freedmana (1984), wersja nieformalna",
+    "Niech x<sub>1</sub>, …, x<sub>n</sub> ∈ ℝ<sup>d</sup>. Jeśli dla prawie wszystkich punktów ‖x<sub>i</sub>‖²/d ≈ σ², a dla prawie wszystkich par x<sub>i</sub>·x<sub>j</sub>/d ≈ 0, to dla prawie wszystkich kierunków jednostkowych θ (rozkład równomierny na sferze) rozkład empiryczny rzutów θ·x<sub>i</sub> jest bliski N(0, σ²). Ściśle: zbieżność przy d, n → ∞.",
+    "Losowy rzut niskowymiarowy danych z wielu wymiarów prawie zawsze wygląda jak gaussowska chmura, nawet gdy dane są bardzo „kanciaste” (np. wierzchołki sześcianu). Struktura może być ukryta w rzucie — trzeba szukać kierunków nietypowych (np. „projection pursuit”), a wykresom PCA i t-SNE nie ufać bezkrytycznie.",
+    "Wierzchołki sześcianu spełniają założenia: ‖x‖² = d, a iloczyny skalarne par są rzędu √d."],
+  jl: ["thm", "Lemat Johnsona–Lindenstraussa (1984)",
+    "Dla dowolnych n punktów w ℝ<sup>D</sup> i ε ∈ (0, 1), jeśli k ≥ 4 ln n / (ε²/2 − ε³/3), to istnieje odwzorowanie liniowe f: ℝ<sup>D</sup> → ℝ<sup>k</sup> takie, że dla wszystkich par (1 − ε)‖u − v‖² ≤ ‖f(u) − f(v)‖² ≤ (1 + ε)‖u − v‖². Losowa macierz o elementach N(0, 1/k) ma tę własność z dużym prawdopodobieństwem (dowód Dasgupty i Gupty, 2003).",
+    "Żeby zachować wszystkie odległości z dokładnością do kilku procent, wystarczy rzut do wymiaru zależnego od liczby punktów (logarytmicznie), a nie od wymiaru D. Ta sama koncentracja, która przeszkadza k-NN, tu pomaga — „błogosławieństwo wymiarowości”.",
+    "Przykład: n = 1000 punktów, ε = 0,1 → k ≥ ok. 5900 niezależnie od tego, czy D = 10<sup>4</sup>, czy 10<sup>9</sup>. Histogram pokazuje stosunek odległości (nie ich kwadratów)."],
+  pca: ["emp", "Obserwacja: hipoteza rozmaitości (nie twierdzenie)",
+    "Rzeczywiste dane wysokowymiarowe (obrazy, dźwięk, tekst) skupiają się zwykle blisko zbioru o znacznie mniejszym wymiarze niż liczba cech. PCA mierzy to tylko w przybliżeniu liniowym: udział wariancji wyjaśnionej przez k pierwszych składowych głównych.",
+    "Cyfry 8×8 mają 64 piksele, ale 21 kierunków wyjaśnia 90% wariancji, a cyfry są rozpoznawalne już w rekonstrukcji z kilkunastu. Dla szumu gaussowskiego udział rośnie liniowo — brak struktury. Dzięki tej strukturze uczenie w wielu wymiarach nie wymaga wykładniczo wielu próbek.",
+    "To założenie o danych, sprawdzane empirycznie; stanowi podstawę m.in. autoenkoderów i metod redukcji wymiaru."],
+  cover: ["thm", "Twierdzenie Covera o liczeniu dychotomii (1965)",
+    "Niech n punktów w ℝ<sup>d</sup> będzie w położeniu ogólnym (każde d z nich liniowo niezależne). Liczba podziałów na dwie klasy realizowalnych hiperpłaszczyzną przez początek układu wynosi C(n, d) = 2 Σ<sub>k=0…d−1</sub> C(n−1, k). Zatem dla losowych etykiet P(rozdzielne) = C(n, d)/2<sup>n</sup>; P = 1 dla n ≤ d, P = 1/2 dla n = 2d, a przy d → ∞: P → 1, gdy n/d &lt; 2, i P → 0, gdy n/d &gt; 2.",
+    "Model liniowy z d wagami potrafi idealnie dopasować praktycznie dowolne etykiety, dopóki punktów jest mniej niż ok. 2d — czyli „pojemność” perceptronu to 2d punktów. Po przeniesieniu danych do przestrzeni o większym wymiarze (cechy, funkcje jądra) rozdzielność staje się coraz łatwiejsza — ale też łatwiej dopasować szum.",
+    "Z obciążeniem (hiperpłaszczyzna dowolna) zastąp d przez d + 1. Dla d → ∞ granica 2d to też pojemność perceptronu w fizyce statystycznej (Gardner, 1988)."],
+  dd: ["thm", "Twierdzenie: dokładny błąd w modelu z dwoma zejściami (Belkin, Hsu, Xu, 2020)",
+    "Niech x ~ N(0, I<sub>D</sub>), y = x·β + ε, ε ~ N(0, σ²), n próbek uczących; model używa pierwszych p cech (zbiór T) i rozwiązania najmniejszych kwadratów o minimalnej normie. Wtedy oczekiwany błąd testowy E(y − ŷ)² wynosi<br>• dla p ≤ n − 2: (‖β<sub>T<sup>c</sup></sub>‖² + σ²)·(1 + p/(n − p − 1)),<br>• dla p ≥ n + 2: ‖β<sub>T</sub>‖²·(1 − n/p) + (‖β<sub>T<sup>c</sup></sub>‖² + σ²)·(1 + n/(p − n − 1)).",
+    "Pominięte cechy działają jak dodatkowy szum. Gdy p zbliża się do n, mianownik n − p − 1 (albo p − n − 1) maleje do zera: model musi przejść dokładnie przez wszystkie punkty i wzmacnia szum dowolnie mocno. Powyżej n spośród wielu idealnych dopasowań wybieramy to o najmniejszej normie — im więcej cech, tym „łagodniejsze” — i błąd znowu spada.",
+    "Przerywana krzywa to wzór (średnia po losowaniach β), punkty — symulacja (mediana z 12 losowań danych; przy p ≈ n średnia jest większa od mediany). Wzór dotyczy λ = 0; z regularyzacją L2 szczyt znika."],
+  saddle: ["thm", "Prawo półokręgu Wignera i wniosek o punktach krytycznych",
+    "Jeśli G jest losową macierzą symetryczną d×d (GOE, elementy niezależne, odpowiednio przeskalowane), to rozkład empiryczny jej wartości własnych zbiega przy d → ∞ do półokręgu o gęstości √(4 − x²)/(2π) na [−2, 2], a najmniejsza wartość własna → −2 prawie na pewno. Zatem dla H = μI + G: P(H dodatnio określona) → 1, gdy μ &gt; 2, i → 0, gdy μ &lt; 2.",
+    "W modelu zabawkowym punkt krytyczny jest minimum tylko wtedy, gdy wszystkie d krzywizn są dodatnie. Przy wielu parametrach to prawie niemożliwe, chyba że punkt leży bardzo nisko (blisko dna). Wyżej prawie każdy punkt krytyczny to siodło z wieloma kierunkami ucieczki.",
+    "Dla losowych pól gaussowskich (Bray–Dean, 2007) i empirycznie dla sieci neuronowych (Dauphin i in., 2014) obserwuje się to samo: indeks punktu krytycznego rośnie z jego wartością kosztu. Sam hesjan sieci nie jest macierzą GOE — to model, nie opis."],
+  slice: ["emp", "Obserwacja empiryczna (nie twierdzenie)",
+    "Wizualizacja „filter-normalized” (Li i in., 2018): koszt na płaszczyźnie θ* + α·δ₁ + β·δ₂, gdzie δ₁, δ₂ to losowe kierunki przeskalowane neuron po neuronie do norm wag θ*. Dolny wykres: koszt na odcinku od wag początkowych do końcowych (Goodfellow i in., 2015).",
+    "Wokół znalezionego minimum koszt wygląda zwykle jak gładka „misa”, a koszt na prostej od startu do końca maleje prawie monotonicznie — mimo że funkcja kosztu sieci nie jest wypukła. Szersze sieci i regularyzacja dają zwykle szersze, płaskie minima.",
+    "To przekroje przez przestrzeń o setkach lub tysiącach wymiarów: nie pokazują siodeł ani innych minimów leżących poza płaszczyzną rysunku."],
+};
+function showThm(id, key) {
+  const t = THM[key], el = $(id); if (!t) { el.hidden = true; return; }
+  el.hidden = false; el.className = "thm" + (t[0] === "emp" ? " emp" : "");
+  el.innerHTML = `<summary>${t[1]}</summary><p>${t[2]}</p><p><span class="lbl">Słowami:</span> ${t[3]}</p><p class="src">${t[4]}</p>`;
+}
+
 // ======================================================================
 // A. GEOMETRIA
 // ======================================================================
@@ -847,7 +922,7 @@ function aCurve(kind) {
 }
 function drawA() {
   const k = aSel.get(), d = Math.round(aD.get()), eps = aEps.get(), cv = $("#aMain");
-  showCtl([aEps], k === "shell");
+  showCtl([aEps], k === "shell"); showThm("#aThm", k);
   const eq = $("#aEq"), cap = $("#aCap");
   if (k === "vol") {
     const f = volFrac(d), N = 3000;
@@ -954,7 +1029,7 @@ function pca(X) {
 }
 function drawB() {
   const k = bSel.get(), eq = $("#bEq"), cap = $("#bCap");
-  showCtl([bD, bFrac], k === "edge"); showCtl([bDp], k === "proj"); bMode.el.hidden = k !== "proj"; showCtl([bK, bDD], k === "jl"); showCtl([bPc], k === "pca"); bRow.hidden = !(k === "proj" || k === "jl");
+  showThm("#bThm", k); showCtl([bD, bFrac], k === "edge"); showCtl([bDp], k === "proj"); bMode.el.hidden = k !== "proj"; showCtl([bK, bDD], k === "jl"); showCtl([bPc], k === "pca"); bRow.hidden = !(k === "proj" || k === "jl");
   if (k === "edge") {
     const d = Math.round(bD.get()), r = bFrac.get(), e = Math.pow(r, 1 / d);
     const P = plotFor($("#bMain"), { xmin: -0.1, xmax: 1.1, ymin: -0.1, ymax: 1.1 }); P.clear(); const g = P.ctx;
@@ -998,7 +1073,7 @@ function drawB() {
     const m = ratios.reduce((a, b) => a + b, 0) / ratios.length, sd = Math.sqrt(ratios.reduce((a, b) => a + (b - m) ** 2, 0) / ratios.length);
     histChart($("#bMain"), ratios, { lo: 0, hi: 2, bins: 80, color: COL.acc, tick: 0.25, xlabel: "odległość po rzucie / odległość oryginalna (1225 par punktów)", vlines: [{ x: 1, label: "bez zniekształceń" }] });
     eq.innerHTML = `D = ${D} → k = ${kk}: odległości zachowane z rozrzutem <span class="big">±${fmt(100 * sd, 1)}%</span>`
-      + `<span class="sub">Rzut macierzą losową (elementy N(0, 1/k)). Lemat Johnsona–Lindenstraussa: k ≈ 8·ln(n)/ε² wymiarów wystarcza, by wszystkie odległości n punktów zmieniły się najwyżej o czynnik 1 ± ε — niezależnie od D. „Błogosławieństwo wymiarowości”: koncentracja miary działa tu na naszą korzyść.</span>`;
+      + `<span class="sub">Rzut macierzą losową (elementy N(0, 1/k)). Liczba potrzebnych wymiarów k zależy od liczby punktów i dokładności, nie od D (treść lematu poniżej). „Błogosławieństwo wymiarowości”: koncentracja miary działa tu na naszą korzyść.</span>`;
     cap.textContent = "Rozrzut zniekształcenia w funkcji k (pomiar dla bieżącego D i teoria 1/√(2k)):";
     const ks = [1, 2, 5, 10, 20, 50, 100, 200, 500], sds = ks.map(kv => { const Mk = Array.from({ length: kv }, () => gaussVec(D)), rr = []; const Yk = jlData.X.slice(0, 25).map(x => Float64Array.from(Mk, mm => { let s = 0; for (let j = 0; j < D; j++) s += mm[j] * x[j]; return s / Math.sqrt(kv); }));
       for (let i = 0; i < 25; i++) for (let j = i + 1; j < 25; j++) { let a = 0, b = 0; for (let t = 0; t < D; t++) a += (jlData.X[i][t] - jlData.X[j][t]) ** 2; for (let t = 0; t < kv; t++) b += (Yk[i][t] - Yk[j][t]) ** 2; rr.push(Math.sqrt(b / a)); }
@@ -1087,7 +1162,7 @@ let ddCache = null;
 function ddCurve(n, lam, sig) {
   const key = [n, lam, sig].join("|"); if (ddCache && ddCache.key === key) return ddCache;
   const D = 200, sd = 0.5, ps = [...new Set([1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 100, 120, 140, 160, 180, 200].concat([n - 3, n - 2, n - 1, n, n + 1, n + 2, n + 3]).filter(p => p >= 1 && p <= D))].sort((a, b) => a - b);
-  const seeds = 12, risk = ps.map(() => []), wn = ps.map(() => []);
+  const seeds = 12, risk = ps.map(() => []), wn = ps.map(() => []), theo = ps.map(() => 0);
   for (let s = 1; s <= seeds; s++) {
     const RR = ML.rng(1000 + s), raw = Array.from({ length: D }, (_, j) => RR.n() * (sig === "flat" ? 1 : Math.pow(j + 1, -0.8))), nb = Math.sqrt(raw.reduce((a, v) => a + v * v, 0)), beta = raw.map(v => v / nb);
     const X = Array.from({ length: n }, () => Float64Array.from({ length: D }, () => RR.n())), y = X.map(x => x.reduce((a, v, j) => a + v * beta[j], 0) + sd * RR.n());
@@ -1101,14 +1176,17 @@ function ddCurve(n, lam, sig) {
         for (let i = 0; i < n; i++) K[i][i] += lam + 1e-9; const al = solveSym(K, y); w = new Float64Array(p); for (let i = 0; i < n; i++) for (let t = 0; t < p; t++) w[t] += al[i] * X[i][t]; }
       let e = sd * sd, nw = 0; for (let j = 0; j < D; j++) { const dlt = beta[j] - (j < p ? w[j] : 0); e += dlt * dlt; } for (let j = 0; j < p; j++) nw += w[j] * w[j];
       risk[pi].push(e); wn[pi].push(Math.sqrt(nw));
+      // wzór Belkina–Hsu–Xu (dla λ = 0)
+      let bT = 0, bC = 0; for (let j = 0; j < D; j++) (j < p ? (bT += beta[j] ** 2) : (bC += beta[j] ** 2));
+      theo[pi] += (p <= n - 2 ? (bC + sd * sd) * (1 + p / (n - p - 1)) : p >= n + 2 ? bT * (1 - n / p) + (bC + sd * sd) * (1 + n / (p - n - 1)) : NaN) / seeds;
     });
   }
   const med = a => { const b = a.slice().sort((x, y) => x - y); return b[Math.floor(b.length / 2)]; };
-  return (ddCache = { key, ps, risk: risk.map(med), wn: wn.map(med) });
+  return (ddCache = { key, ps, risk: risk.map(med), wn: wn.map(med), theo });
 }
 function drawC() {
   const k = cSel.get(), eq = $("#cEq"), cap = $("#cCap");
-  showCtl([cDexp], k === "cover"); cRow.hidden = k !== "cover"; showCtl([cN, cLam], k === "dd"); cSig.el.hidden = k !== "dd";
+  showThm("#cThm", k); showCtl([cDexp], k === "cover"); cRow.hidden = k !== "cover"; showCtl([cN, cLam], k === "dd"); cSig.el.hidden = k !== "dd";
   if (k === "cover") {
     const ratios = Array.from({ length: 161 }, (_, i) => i * 4 / 160), cols = [COL.muted, COL.ok, COL.pos, COL.acc, COL.ink], dims = [2, 5, 10, 50, 200];
     const series = dims.map((d, i) => ({ x: ratios, y: ratios.map(r => coverP(Math.max(1, Math.round(r * d)), d)), color: cols[i], label: `d = ${d}`, width: 2 }));
@@ -1123,7 +1201,7 @@ function drawC() {
   if (k === "dd") {
     const n = Math.round(cN.get()), lam = cLam.get() <= 1.01e-4 ? 0 : cLam.get(), c = ddCurve(n, lam, cSig.get());
     const i = c.ps.indexOf(n), best = Math.min(...c.risk), pb = c.ps[c.risk.indexOf(best)];
-    lineChart($("#cMain"), [{ x: c.ps, y: c.risk, color: COL.neg, dots: true, label: "błąd testowy" }], { logy: true, xmin: 0, xmax: 200, xlabel: "liczba cech modelu p (z 200)", ylabel: "błąd testowy (MSE)", vlines: [{ x: n, label: "p = n (interpolacja)" }], hlines: [{ y: 0.25 }] });
+    lineChart($("#cMain"), [{ x: c.ps, y: c.risk, color: COL.neg, dots: true, label: "błąd testowy (symulacja)" }].concat(lam ? [] : [{ x: c.ps, y: c.theo, color: COL.ink, dash: [6, 4], width: 1.6, label: "wzór Belkina–Hsu–Xu" }]), { logy: true, xmin: 0, xmax: 200, xlabel: "liczba cech modelu p (z 200)", ylabel: "błąd testowy (MSE)", vlines: [{ x: n, label: "p = n (interpolacja)" }], hlines: [{ y: 0.25 }] });
     eq.innerHTML = `n = ${n}: błąd testowy przy p = n <span class="big">${fmt(c.risk[i], 1)}</span>, najmniejszy ${fmt(best, 2)} przy p = ${pb}`
       + `<span class="sub">y = x·β + szum (σ² = 0,25, linia przerywana), x ∈ ℝ<sup>200</sup>; model widzi pierwsze p cech. Dla p ≤ n — najmniejsze kwadraty${lam ? " z L2" : ""}, dla p &gt; n — rozwiązanie o najmniejszej normie (spośród wielu idealnie dopasowanych). Mediana z 12 losowań danych. ${lam ? `λ = ${fmt(lam, 3)}.` : "Bez regularyzacji."}</span>`;
     cap.textContent = "Norma wag ‖w‖ w funkcji p — przy p = n model musi użyć ogromnych wag, żeby przejść przez każdy punkt:";
@@ -1159,7 +1237,7 @@ function getSaddle() {
 }
 function drawD() {
   const k = dSel.get(), eq = $("#dEq"), cap = $("#dCap");
-  showCtl([dD, dMu], k === "saddle"); dH.el.hidden = dL2.el.hidden = dRow.hidden = k !== "slice";
+  showThm("#dThm", k); showCtl([dD, dMu], k === "saddle"); dH.el.hidden = dL2.el.hidden = dRow.hidden = k !== "slice";
   if (k === "saddle") {
     const d = Math.round(dD.get()), mu = dMu.get(), t = goeTri(Math.max(d, 1), R);
     let ev = d <= 400 ? eigAll(t) : null;
