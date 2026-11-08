@@ -78,6 +78,13 @@ details.thm > summary { cursor: pointer; font-weight: 700; color: var(--ok); lis
 details.thm.emp { border-left-color: #B45309; } details.thm.emp > summary { color: #B45309; }
 details.thm p { margin: 8px 0 0; } details.thm .lbl { font-weight: 700; color: var(--ink); }
 details.thm .src { color: var(--muted); font-size: 0.88em; }
+/* objaśnienia symboli we wzorach */
+details.sym { margin-top: 10px; padding: 8px 16px 10px; border: 1px solid var(--line); border-left: 4px solid var(--muted); border-radius: 0 6px 6px 0; background: #fff; font-size: 0.92rem; line-height: 1.45; }
+details.sym > summary { cursor: pointer; font-weight: 700; color: var(--ink); }
+details.sym dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 8px 0 0; }
+details.sym dt { font-weight: 600; white-space: nowrap; } details.sym dd { margin: 0; color: var(--ink); }
+details.sym p { margin: 8px 0 0; color: var(--muted); }
+@media (max-width: 560px) { details.sym dl { grid-template-columns: 1fr; } details.sym dd { margin-bottom: 6px; } }
 </style>
 <style>
 canvas.big { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: 62vh; touch-action: none; border-radius: 6px; }
@@ -102,6 +109,7 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
   <section class="stage">
     <canvas class="big" id="aMain"></canvas>
     <div class="equation" id="aEq"></div>
+    <details class="sym" id="aSym" open></details>
     <details class="thm" id="aThm" open></details>
     <p class="cap" id="aCap"></p>
     <canvas class="curve" id="aCurve"></canvas>
@@ -124,6 +132,7 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
   <section class="stage">
     <canvas class="big" id="bMain"></canvas>
     <div class="equation" id="bEq"></div>
+    <details class="sym" id="bSym" open></details>
     <details class="thm" id="bThm" open></details>
     <p class="cap" id="bCap"></p>
     <canvas class="curve" id="bCurve"></canvas>
@@ -145,6 +154,7 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
   <section class="stage">
     <canvas class="big" id="cMain"></canvas>
     <div class="equation" id="cEq"></div>
+    <details class="sym" id="cSym" open></details>
     <details class="thm" id="cThm" open></details>
     <p class="cap" id="cCap"></p>
     <canvas class="curve" id="cCurve"></canvas>
@@ -166,6 +176,7 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
   <section class="stage">
     <canvas class="big" id="dMain"></canvas>
     <div class="equation" id="dEq"></div>
+    <details class="sym" id="dSym" open></details>
     <details class="thm" id="dThm" open></details>
     <p class="cap" id="dCap"></p>
     <canvas class="curve" id="dCurve"></canvas>
@@ -891,6 +902,27 @@ const THM = {
     "Wokół znalezionego minimum koszt wygląda zwykle jak gładka „misa”, a koszt na prostej od startu do końca maleje prawie monotonicznie — mimo że funkcja kosztu sieci nie jest wypukła. Szersze sieci i regularyzacja dają zwykle szersze, płaskie minima.",
     "To przekroje przez przestrzeń o setkach lub tysiącach wymiarów: nie pokazują siodeł ani innych minimów leżących poza płaszczyzną rysunku."],
 };
+
+// objaśnienia symboli we wzorach (ramka „Oznaczenia”)
+const SYM = {
+  vol: [["d", "wymiar przestrzeni (liczba cech)"], ["[−1, 1]<sup>d</sup>", "sześcian o krawędzi 2 i środku w zerze"], ["kula wpisana", "punkty x z ‖x‖ ≤ 1, gdzie ‖x‖ = √(x₁² + … + x<sub>d</sub>²)"], ["Γ", "funkcja gamma — uogólnienie silni: Γ(m + 1) = m!"], ["√d", "odległość narożnika sześcianu od środka"]],
+  shell: [["ε", "grubość skorupy (suwak)"], ["r", "odległość punktu od środka kuli jednostkowej"], ["d·r<sup>d−1</sup>", "gęstość promienia punktu losowanego równomiernie z kuli — rośnie bardzo szybko przy r → 1"]],
+  gauss: [["N(0, I<sub>d</sub>)", "wielowymiarowy rozkład normalny: d niezależnych współrzędnych o średniej 0 i wariancji 1"], ["‖x‖", "norma (długość) wektora — odległość próbki od zera"], ["E, Var", "wartość oczekiwana i wariancja"], ["t", "dopuszczalne odchylenie normy od jej średniej"]],
+  orth: [["u, v", "losowe wektory jednostkowe (kierunki)"], ["⟨u, v⟩ = cos∠", "iloczyn skalarny, dla wektorów jednostkowych równy cosinusowi kąta między nimi; 0 oznacza prostopadłość"], ["1/√d", "typowa wielkość cosinusa (odchylenie standardowe)"]],
+  dist: [["Q", "punkt zapytania"], ["D<sub>i</sub> = ‖X<sub>i</sub> − Q‖", "odległość i-tego punktu od zapytania"], ["d<sub>min</sub>, d<sub>max</sub>", "odległość najbliższego i najdalszego punktu"], ["(d<sub>max</sub> − d<sub>min</sub>)/d<sub>min</sub>", "kontrast odległości — dąży do 0"]],
+  edge: [["r", "ułamek danych, który ma się znaleźć w sąsiedztwie (suwak)"], ["r<sup>1/d</sup>", "krawędź podsześcianu o objętości r — czyli jaką część zakresu każdej cechy musi objąć sąsiedztwo"], ["10<sup>d</sup>", "liczba próbek potrzebna, żeby na każdą oś przypadało 10 różnych wartości"]],
+  proj: [["{−1, 1}<sup>d</sup>", "wierzchołki sześcianu: wszystkie wektory o współrzędnych ±1 (2<sup>d</sup> punktów)"], ["θ", "losowy kierunek jednostkowy; rzut punktu x to liczba θ·x"], ["rzut na płaszczyznę", "dwa prostopadłe losowe kierunki θ₁, θ₂ dają współrzędne (θ₁·x, θ₂·x)"], ["N(0, σ²)", "rozkład normalny — czarna krzywa na dolnym wykresie"]],
+  jl: [["D", "wymiar oryginalny danych"], ["k", "wymiar po rzucie (suwak)"], ["f(x) = Mx", "rzut liniowy: macierz M o k wierszach i D kolumnach, elementy losowe N(0, 1/k)"], ["‖f(u) − f(v)‖ / ‖u − v‖", "stosunek odległości po rzucie i przed — idealnie 1"], ["ε", "dopuszczalne względne zniekształcenie (kwadratów) odległości"], ["n", "liczba punktów (tu 50, czyli 1225 par)"]],
+  pca: [["składowe główne", "prostopadłe kierunki, wzdłuż których dane mają kolejno największą wariancję (wektory własne macierzy kowariancji)"], ["k", "liczba użytych składowych (suwak)"], ["wyjaśniona wariancja", "suma k największych wartości własnych podzielona przez sumę wszystkich"], ["rekonstrukcja", "średni obraz + rzut obrazu na k składowych głównych"]],
+  cover: [["n", "liczba punktów"], ["d", "wymiar (liczba wag modelu liniowego bez obciążenia)"], ["C(n − 1, k)", "symbol Newtona: liczba k-elementowych podzbiorów zbioru (n − 1)-elementowego"], ["dychotomia", "podział punktów na dwie klasy (przypisanie etykiet ±1)"], ["położenie ogólne", "żadne d punktów nie leży w jednej podprzestrzeni wymiaru d − 1 (każde d z nich jest liniowo niezależne)"]],
+  dd: [["n", "liczba próbek uczących (suwak)"], ["p", "liczba cech używanych przez model — pierwsze p z 200"], ["β", "prawdziwe wagi; ‖β‖ = 1"], ["T, T<sup>c</sup>", "zbiór cech użytych przez model i pozostałych (pominiętych)"], ["‖β<sub>T</sub>‖², ‖β<sub>T<sup>c</sup></sub>‖²", "część sygnału, którą model może uchwycić, i część, która dla niego jest szumem"], ["σ²", "wariancja szumu w y (0,25)"], ["rozwiązanie o minimalnej normie", "dla p > n równania mają nieskończenie wiele rozwiązań dokładnie przechodzących przez dane; wybieramy to o najmniejszym ‖w‖"], ["λ", "regularyzacja L2 (ridge)"]],
+  saddle: [["d", "liczba parametrów (wymiar)"], ["hesjan H", "macierz drugich pochodnych kosztu; jej wartości własne to krzywizny w kierunkach głównych"], ["wartość własna &gt; 0 / &lt; 0", "kierunek, w którym koszt rośnie / maleje — kierunek ucieczki z punktu krytycznego"], ["μ", "przesunięcie wszystkich krzywizn w górę — w modelu odpowiada temu, jak nisko (blisko dna) leży punkt"], ["indeks", "liczba ujemnych wartości własnych; 0 oznacza minimum lokalne"], ["GOE", "losowa macierz symetryczna o niezależnych elementach gaussowskich"]],
+  slice: [["θ*", "wagi sieci po uczeniu (biała kropka)"], ["δ₁, δ₂", "losowe kierunki w przestrzeni wag, przeskalowane tak, by każdy neuron miał normę jak w θ*"], ["α, β", "współrzędne na płaszczyźnie przekroju, od −1 do 1"], ["t", "parametr odcinka θ<sub>0</sub> + t(θ* − θ<sub>0</sub>) od wag początkowych (t = 0) do końcowych (t = 1)"], ["koszt", "entropia krzyżowa na 600 obrazach cyfr"]],
+};
+function showSym(id, key) {
+  const r = SYM[key], el = $(id); if (!r) { el.hidden = true; return; }
+  el.hidden = false; el.innerHTML = `<summary>Oznaczenia we wzorze</summary><dl>${r.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl>`;
+}
 function showThm(id, key) {
   const t = THM[key], el = $(id); if (!t) { el.hidden = true; return; }
   el.hidden = false; el.className = "thm" + (t[0] === "emp" ? " emp" : "");
@@ -922,7 +954,7 @@ function aCurve(kind) {
 }
 function drawA() {
   const k = aSel.get(), d = Math.round(aD.get()), eps = aEps.get(), cv = $("#aMain");
-  showCtl([aEps], k === "shell"); showThm("#aThm", k);
+  showCtl([aEps], k === "shell"); showThm("#aThm", k); showSym("#aSym", k);
   const eq = $("#aEq"), cap = $("#aCap");
   if (k === "vol") {
     const f = volFrac(d), N = 3000;
@@ -1029,7 +1061,7 @@ function pca(X) {
 }
 function drawB() {
   const k = bSel.get(), eq = $("#bEq"), cap = $("#bCap");
-  showThm("#bThm", k); showCtl([bD, bFrac], k === "edge"); showCtl([bDp], k === "proj"); bMode.el.hidden = k !== "proj"; showCtl([bK, bDD], k === "jl"); showCtl([bPc], k === "pca"); bRow.hidden = !(k === "proj" || k === "jl");
+  showThm("#bThm", k); showSym("#bSym", k); showCtl([bD, bFrac], k === "edge"); showCtl([bDp], k === "proj"); bMode.el.hidden = k !== "proj"; showCtl([bK, bDD], k === "jl"); showCtl([bPc], k === "pca"); bRow.hidden = !(k === "proj" || k === "jl");
   if (k === "edge") {
     const d = Math.round(bD.get()), r = bFrac.get(), e = Math.pow(r, 1 / d);
     const P = plotFor($("#bMain"), { xmin: -0.1, xmax: 1.1, ymin: -0.1, ymax: 1.1 }); P.clear(); const g = P.ctx;
@@ -1186,7 +1218,7 @@ function ddCurve(n, lam, sig) {
 }
 function drawC() {
   const k = cSel.get(), eq = $("#cEq"), cap = $("#cCap");
-  showThm("#cThm", k); showCtl([cDexp], k === "cover"); cRow.hidden = k !== "cover"; showCtl([cN, cLam], k === "dd"); cSig.el.hidden = k !== "dd";
+  showThm("#cThm", k); showSym("#cSym", k); showCtl([cDexp], k === "cover"); cRow.hidden = k !== "cover"; showCtl([cN, cLam], k === "dd"); cSig.el.hidden = k !== "dd";
   if (k === "cover") {
     const ratios = Array.from({ length: 161 }, (_, i) => i * 4 / 160), cols = [COL.muted, COL.ok, COL.pos, COL.acc, COL.ink], dims = [2, 5, 10, 50, 200];
     const series = dims.map((d, i) => ({ x: ratios, y: ratios.map(r => coverP(Math.max(1, Math.round(r * d)), d)), color: cols[i], label: `d = ${d}`, width: 2 }));
@@ -1237,7 +1269,7 @@ function getSaddle() {
 }
 function drawD() {
   const k = dSel.get(), eq = $("#dEq"), cap = $("#dCap");
-  showThm("#dThm", k); showCtl([dD, dMu], k === "saddle"); dH.el.hidden = dL2.el.hidden = dRow.hidden = k !== "slice";
+  showThm("#dThm", k); showSym("#dSym", k); showCtl([dD, dMu], k === "saddle"); dH.el.hidden = dL2.el.hidden = dRow.hidden = k !== "slice";
   if (k === "saddle") {
     const d = Math.round(dD.get()), mu = dMu.get(), t = goeTri(Math.max(d, 1), R);
     let ev = d <= 400 ? eigAll(t) : null;

@@ -78,6 +78,13 @@ details.thm > summary { cursor: pointer; font-weight: 700; color: var(--ok); lis
 details.thm.emp { border-left-color: #B45309; } details.thm.emp > summary { color: #B45309; }
 details.thm p { margin: 8px 0 0; } details.thm .lbl { font-weight: 700; color: var(--ink); }
 details.thm .src { color: var(--muted); font-size: 0.88em; }
+/* objaśnienia symboli we wzorach */
+details.sym { margin-top: 10px; padding: 8px 16px 10px; border: 1px solid var(--line); border-left: 4px solid var(--muted); border-radius: 0 6px 6px 0; background: #fff; font-size: 0.92rem; line-height: 1.45; }
+details.sym > summary { cursor: pointer; font-weight: 700; color: var(--ink); }
+details.sym dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 8px 0 0; }
+details.sym dt { font-weight: 600; white-space: nowrap; } details.sym dd { margin: 0; color: var(--ink); }
+details.sym p { margin: 8px 0 0; color: var(--muted); }
+@media (max-width: 560px) { details.sym dl { grid-template-columns: 1fr; } details.sym dd { margin-bottom: 6px; } }
 </style>
 </head>
 <body>
@@ -91,6 +98,7 @@ details.thm .src { color: var(--muted); font-size: 0.88em; }
     <canvas class="main" id="cv" aria-label="Granica decyzyjna regresji logistycznej na cechach wielomianowych"></canvas>
     <div class="legend"><span><i style="background:var(--pos)"></i>klasa 1</span><span><i style="background:var(--neg)"></i>klasa 0</span><span><i style="background:var(--ink)"></i>granica decyzyjna</span><span id="lgVar" hidden><i style="background:var(--accent)"></i>granice modeli uczonych na innych próbach</span></div>
     <div class="equation" id="eq"></div>
+    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x₁, x₂</dt><dd>cechy próbki (współrzędne punktu)</dd><dt>d</dt><dd>stopień wielomianu — suwak</dd><dt>x₁<sup>a</sup>x₂<sup>b</sup>, a + b ≤ d</dt><dd>cechy wielomianowe: wszystkie iloczyny potęg o łącznym stopniu najwyżej d, np. dla d = 2: x₁, x₂, x₁², x₁x₂, x₂²; ich liczba to (d + 1)(d + 2)/2 − 1</dd><dt>w<sub>ab</sub>, w₀</dt><dd>waga każdej cechy wielomianowej i wyraz wolny</dd><dt>z</dt><dd>pobudzenie; model to regresja logistyczna p = σ(z), granica decyzyjna to z = 0 — prosta w nowych cechach, krzywa na płaszczyźnie</dd><dt>log-loss</dt><dd>koszt dopasowania do danych uczących (entropia krzyżowa)</dd><dt>λ/2 · Σ wⱼ²</dt><dd>kara L2 — nie obejmuje w₀; większa λ wymusza mniejsze wagi i gładszą granicę</dd></dl><p>Każda cecha wielomianowa jest przed uczeniem standaryzowana na zbiorze uczącym (średnia 0, odchylenie 1), żeby x₁¹⁰ i x₁ miały porównywalną skalę.</p></details>
   </section>
   <aside class="rail">
     <div class="panel"><h3>Dane</h3><div id="data"></div></div>

@@ -78,6 +78,13 @@ details.thm > summary { cursor: pointer; font-weight: 700; color: var(--ok); lis
 details.thm.emp { border-left-color: #B45309; } details.thm.emp > summary { color: #B45309; }
 details.thm p { margin: 8px 0 0; } details.thm .lbl { font-weight: 700; color: var(--ink); }
 details.thm .src { color: var(--muted); font-size: 0.88em; }
+/* objaśnienia symboli we wzorach */
+details.sym { margin-top: 10px; padding: 8px 16px 10px; border: 1px solid var(--line); border-left: 4px solid var(--muted); border-radius: 0 6px 6px 0; background: #fff; font-size: 0.92rem; line-height: 1.45; }
+details.sym > summary { cursor: pointer; font-weight: 700; color: var(--ink); }
+details.sym dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 8px 0 0; }
+details.sym dt { font-weight: 600; white-space: nowrap; } details.sym dd { margin: 0; color: var(--ink); }
+details.sym p { margin: 8px 0 0; color: var(--muted); }
+@media (max-width: 560px) { details.sym dl { grid-template-columns: 1fr; } details.sym dd { margin-bottom: 6px; } }
 </style>
 <style>
 #tv { display: block; width: 100%; height: 230px; margin-top: 12px; border-top: 1px solid var(--line); }
@@ -102,6 +109,7 @@ table.imp tr.best td { font-weight: 700; }
     <canvas class="main" id="cv" aria-label="Podział płaszczyzny przez drzewo decyzyjne"></canvas>
     <div class="legend"><span><i style="background:var(--pos)"></i>klasa +1</span><span><i style="background:var(--neg)"></i>klasa −1</span><span><i style="background:var(--ink)"></i>podziały (grubsza linia = bliżej korzenia)</span><span><i style="background:var(--accent)"></i>ścieżka wskazanego punktu</span></div>
     <div class="equation" id="eq"></div>
+    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>xⱼ ≤ t</dt><dd>test w węźle: próbka idzie w lewo („tak”), gdy cecha xⱼ nie przekracza progu t</dd><dt>I(·)</dt><dd>miara zanieczyszczenia węzła (wybrane kryterium); 0 dla węzła czystego</dd><dt>p</dt><dd>udział klasy +1 w węźle</dd><dt>Gini</dt><dd>1 − p² − (1 − p)²: prawdopodobieństwo, że dwie losowe próbki z węzła mają różne klasy</dd><dt>entropia</dt><dd>−p log₂ p − (1 − p) log₂(1 − p): średnia liczba bitów potrzebna, by zakodować klasę</dd><dt>błąd klasyfikacji</dt><dd>1 − max(p, 1 − p): odsetek pomyłek przy przypisaniu klasy większościowej</dd><dt>N, N<sub>L</sub>, N<sub>R</sub></dt><dd>liczba próbek w rodzicu i w lewym/prawym dziecku</dd><dt>IG = I(rodzic) − Σ (N<sub>dziecko</sub>/N)·I(dziecko)</dt><dd>przyrost informacji: o ile podział zmniejsza średnie zanieczyszczenie; algorytm wybiera podział o największym IG</dd><dt>a / b w węźle</dt><dd>liczba próbek klasy +1 / klasy −1</dd></dl></details>
     <canvas id="tv" aria-label="Struktura drzewa"></canvas>
   </section>
   <aside class="rail">
@@ -133,6 +141,7 @@ table.imp tr.best td { font-weight: 700; }
   <section class="stage">
     <canvas id="cvS" aria-label="Jeden podział węzła: przeciągnij próg"></canvas>
     <div class="equation" id="eqS"></div>
+    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>próg</dt><dd>wartość cechy, przy której dzielimy węzeł — przeciągana linia</dd><dt>lewe/prawe (dolne/górne)</dt><dd>próbki po obu stronach progu; liczby to klasa +1 / klasa −1</dd><dt>nl/n, nr/n</dt><dd>udziały dzieci w liczbie próbek rodzica — wagi zanieczyszczenia dzieci</dd><dt>IG</dt><dd>przyrost informacji: zanieczyszczenie rodzica minus średnia ważona zanieczyszczeń dzieci</dd><dt>L, P, rodzic (wykres)</dt><dd>udział klasy +1 w lewym dziecku, prawym dziecku i rodzicu; IG Gini to pionowa odległość krzywej nad cięciwą łączącą L i P w punkcie rodzica</dd></dl></details>
   </section>
   <aside class="rail">
     <div class="panel"><h3>Podział węzła</h3><div id="split"></div><p class="hint">Przeciągnij linię progu na rysunku.</p></div>

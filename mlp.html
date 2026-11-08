@@ -78,6 +78,13 @@ details.thm > summary { cursor: pointer; font-weight: 700; color: var(--ok); lis
 details.thm.emp { border-left-color: #B45309; } details.thm.emp > summary { color: #B45309; }
 details.thm p { margin: 8px 0 0; } details.thm .lbl { font-weight: 700; color: var(--ink); }
 details.thm .src { color: var(--muted); font-size: 0.88em; }
+/* objaśnienia symboli we wzorach */
+details.sym { margin-top: 10px; padding: 8px 16px 10px; border: 1px solid var(--line); border-left: 4px solid var(--muted); border-radius: 0 6px 6px 0; background: #fff; font-size: 0.92rem; line-height: 1.45; }
+details.sym > summary { cursor: pointer; font-weight: 700; color: var(--ink); }
+details.sym dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 8px 0 0; }
+details.sym dt { font-weight: 600; white-space: nowrap; } details.sym dd { margin: 0; color: var(--ink); }
+details.sym p { margin: 8px 0 0; color: var(--muted); }
+@media (max-width: 560px) { details.sym dl { grid-template-columns: 1fr; } details.sym dd { margin-bottom: 6px; } }
 </style>
 <style>
 #net { display: block; width: 100%; height: 270px; margin-top: 12px; border-top: 1px solid var(--line); cursor: pointer; }
@@ -94,6 +101,7 @@ details.thm .src { color: var(--muted); font-size: 0.88em; }
     <canvas class="main" id="cv" aria-label="Prawdopodobieństwo klasy +1 według sieci"></canvas>
     <div class="legend"><span><i style="background:var(--pos)"></i>klasa +1</span><span><i style="background:var(--neg)"></i>klasa −1</span><span><i style="background:var(--ink)"></i>granica p = 0,5</span><span>krawędzie sieci: <b style="color:var(--pos)">niebieska</b> — waga dodatnia, <b style="color:var(--neg)">czerwona</b> — ujemna, grubość ∝ |w|</span></div>
     <div class="equation" id="eq"></div>
+    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x = a⁽⁰⁾</dt><dd>wejście sieci (x₁, x₂)</dd><dt>W⁽ˡ⁾, b⁽ˡ⁾</dt><dd>macierz wag i wektor obciążeń warstwy l; wiersz macierzy to wagi jednego neuronu</dd><dt>W⁽ˡ⁾a⁽ˡ⁻¹⁾ + b⁽ˡ⁾ = z⁽ˡ⁾</dt><dd>pobudzenia neuronów warstwy l — kombinacje liniowe wyjść warstwy poprzedniej</dd><dt>tanh, ReLU, σ</dt><dd>funkcja aktywacji g stosowana do każdego pobudzenia: tanh(z) ∈ (−1, 1), ReLU(z) = max(0, z), σ(z) = 1/(1 + e<sup>−z</sup>)</dd><dt>a⁽ˡ⁾ = g(z⁽ˡ⁾)</dt><dd>aktywacje (wyjścia) neuronów warstwy l — miniatury na schemacie</dd><dt>softmax(z)<sub>k</sub> = e<sup>z<sub>k</sub></sup> / Σⱼ e<sup>zⱼ</sup></dt><dd>zamienia logity wyjść na prawdopodobieństwa klas sumujące się do 1</dd><dt>p, p<sub>y</sub></dt><dd>wektor prawdopodobieństw klas i prawdopodobieństwo prawdziwej klasy y</dd><dt>J = −(1/n) Σ log p<sub>y⁽ⁱ⁾</sub></dt><dd>entropia krzyżowa — średnia „niespodzianka” sieci na danych uczących</dd><dt>λ/2 · Σ w²</dt><dd>kara L2 za duże wagi</dd><dt>‖∂J/∂W⁽ˡ⁾‖</dt><dd>norma gradientu kosztu po wagach warstwy l — jak silnie warstwa jest poprawiana (wykres słupkowy)</dd></dl></details>
     <canvas id="net" aria-label="Schemat sieci; każdy neuron pokazuje swoją aktywację na płaszczyźnie"></canvas>
   </section>
   <aside class="rail">
