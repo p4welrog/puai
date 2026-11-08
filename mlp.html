@@ -94,6 +94,7 @@ canvas.mini { display: block; width: 100%; height: 130px; }
     <div class="panel"><h3>Dane</h3><div id="data"></div></div>
     <div class="panel"><h3>Architektura</h3><div id="arch"></div></div>
     <div class="panel"><h3>Uczenie</h3><div id="learn"></div><div class="row" id="btns" style="margin-top:8px"></div></div>
+    <div class="panel"><h3>Widok neuronów wyjściowych</h3><div id="view"></div><p class="hint">Kliknij dowolny neuron na schemacie (wejście, warstwa ukryta, wyjście), by zobaczyć jego mapę na dużym rysunku; ponowne kliknięcie wraca do p(+1).</p></div>
     <div class="panel"><h3>Wynik</h3>
       <dl class="stats">
         <dt>epoka</dt><dd id="sEp"></dd>
@@ -113,6 +114,7 @@ canvas.mini { display: block; width: 100%; height: 130px; }
       <li>XOR z jedną warstwą i 2 neuronami: każdy neuron ukryty to jedna prosta (widać na miniaturach), a wyjście łączy dwie półpłaszczyzny. Czasem sieć utyka — „Nowe wagi” i jeszcze raz. Z 4 neuronami udaje się prawie zawsze.</li>
       <li>Okręgi: ile neuronów w jednej warstwie wystarczy? Każdy dokłada jeden bok wielokąta otaczającego środek.</li>
       <li>Spirale przy 4 neuronach w warstwie i ReLU: jedna warstwa dochodzi do ok. 85–90%, dwie — prawie do 100%. Druga warstwa składa proste z pierwszej w zakrzywione kształty. Kliknij neuron, by zobaczyć jego aktywację na dużym rysunku.</li>
+      <li>Kliknij neuron wyjściowy i przełącz widok na „z — przed softmaksem”. Logit to kombinacja liniowa map z ostatniej warstwy ukrytej (wagi na krawędziach); o klasie decyduje, który z dwóch logitów jest większy. W widoku p mapy obu wyjść są dopełnieniami, bo p₋ + p₊ = 1.</li>
       <li>Ustaw 5 warstw z sigmoidą i kliknij „Nowe wagi”. Przed uczeniem pierwsza warstwa dostaje gradient o 2–3 rzędy wielkości mniejszy niż ostatnia (zanikający gradient) i uczy się bardzo wolno. Z tanh lub ReLU słupki są podobnej wysokości.</li>
       <li>Zmniejsz minipaczkę do 1 (SGD): koszt spada szybciej w epokach, ale „drga”. Zwiększ η do 1 — uczenie staje się niestabilne.</li>
       <li>Na księżycach z dużym szumem i 3×8 neuronami ucz długo i porównuj koszt uczący z testowym — rosnąca różnica to przetrenowanie. Zwiększ λ (L2): granica się wygładza.</li>
@@ -708,6 +710,7 @@ const bs = seg(Lr, [["1", "SGD (1)"], ["10", "minipaczka 10"], ["32", "32"], ["a
 const lam = slider(Lr, { label: "regularyzacja L2 λ (lewy koniec = 0)", min: 1e-5, max: 0.1, log: true, value: 1e-5, digits: 4 });
 const speed = slider(Lr, { label: "tempo animacji (epok na klatkę)", min: 1, max: 50, step: 1, value: 2, digits: 0 });
 const lamV = () => (lam.get() <= 1.01e-5 ? 0 : lam.get());
+const outMode = seg($("#view"), [["p", "p — po softmaksie"], ["z", "z — przed softmaksem (logit)"]], "p", () => draw());
 const B = $("#btns");
 const bRun = button(B, "Start", () => { running = !running; bRun.textContent = running ? "Pauza" : "Start"; if (running) loop(); }, true);
 button(B, "1 epoka", () => { trainEpochs(1); draw(); });
@@ -745,24 +748,43 @@ function loop() {
   draw(); requestAnimationFrame(loop);
 }
 const clampP = p => Math.min(0.985, Math.max(0.015, p));
-// wartość pokazywana: wyjście sieci albo aktywacja wybranego neuronu
-function neuronFn(l, j) { // l: 1..L-1 (warstwy ukryte)
-  return (x, y) => net.forward([x, y]).A[l][j];
-}
+// mapy neuronów: focus = null (p(+1)) albo ["in", j], ["hid", l, j], ["out", k]; k = 0 → klasa −1, k = 1 → klasa +1
+function neuronFn(l, j) { return (x, y) => net.forward([x, y]).A[l][j]; }
 function actColor(v) { // aktywacja → kolor: dla tanh/ReLU symetrycznie wokół 0, sigmoida wokół 0,5
   const s = net.act === "sigmoid" ? (v - 0.5) * 4 : net.act === "relu" ? v : v * 2;
   return tint(s, 1.2);
 }
+const KLASA = ["−1", "+1"];
+function nodeMap(fc) { // zwraca {f, col, lvl, label}
+  if (fc[0] === "in") return { f: (x, y) => (fc[1] === 0 ? x : y), col: v => tint(v / 3, 0.6), lvl: 0,
+    label: `wejście x${fc[1] ? "₂" : "₁"}: wartość cechy (niebieski > 0, czerwony < 0)` };
+  if (fc[0] === "hid") return { f: neuronFn(fc[1], fc[2]), col: actColor, lvl: net.act === "sigmoid" ? 0.5 : net.act === "relu" ? 1e-6 : 0,
+    label: `aktywacja neuronu ${fc[2] + 1} w warstwie ukrytej ${fc[1]}` };
+  const L = net.W.length, k = fc[1];
+  if (outMode.get() === "z") return { f: (x, y) => net.forward([x, y]).Z[L - 1][k], col: v => tint(v / 2, 1.2), lvl: 0,
+    label: `wyjście klasy ${KLASA[k]}: logit z${k ? "₊" : "₋"} = Σ w·a⁽${L - 1}⁾ + b, przed softmaksem (niebieski > 0, czerwony < 0)` };
+  return { f: (x, y) => net.forward([x, y]).A[L][k], col: p => tint((p - 0.5) * 4, 1.2), lvl: 0.5,
+    label: `wyjście klasy ${KLASA[k]}: p${k ? "₊" : "₋"} po softmaksie (niebieski > 0,5, czerwony < 0,5)` };
+}
+const sameFocus = (a, b) => a && b && a.length === b.length && a.every((v, i) => v === b[i]);
 function draw() {
   P.clear();
-  let f, col, lvl;
-  if (focus) { f = neuronFn(focus[0], focus[1]); col = actColor; lvl = net.act === "sigmoid" ? 0.5 : net.act === "relu" ? 1e-6 : 0; }
-  else { f = (x, y) => net.proba(x, y); col = p => probTint(clampP(p)); lvl = 0.5; }
-  P.heat(f, col, 5); P.grid(1);
-  P.contour(P.sample(f, 70), lvl, { width: 2.2, color: focus ? COL.acc : COL.ink });
+  const pfun = (x, y) => net.proba(x, y);
+  if (focus) {
+    const m = nodeMap(focus);
+    P.heat(m.f, m.col, 5); P.grid(1);
+    P.contour(P.sample(m.f, 70), m.lvl, { width: 2.2, color: COL.acc });
+    if (focus[0] === "out") P.contour(P.sample(pfun, 70), 0.5, { width: 1.6, color: COL.ink, dash: [6, 4] });
+  } else {
+    P.heat(pfun, p => probTint(clampP(p)), 5); P.grid(1);
+    P.contour(P.sample(pfun, 70), 0.5, { width: 2.2, color: COL.ink });
+  }
   if (showTest.get()) test.forEach(p => P.point(p, { r: 4, faded: true }));
   train.forEach(p => P.point(p, { r: 4.5 }));
-  if (focus) P.text(`aktywacja neuronu ${focus[1] + 1} w warstwie ukrytej ${focus[0]} — kliknij go ponownie, by wrócić`, 10, 20, { color: COL.acc, size: 13, weight: 600 });
+  if (focus) {
+    P.text(nodeMap(focus).label, 10, 20, { color: COL.acc, size: 13, weight: 600 });
+    P.text("fioletowa linia — poziom zerowy / 0,5" + (focus[0] === "out" ? "; przerywana — granica decyzyjna sieci" : "") + "; kliknij neuron ponownie, by wrócić", 10, 38, { color: COL.muted, size: 12 });
+  }
   // statystyki
   $("#sEp").textContent = epoch;
   $("#sJ").textContent = fmt(hist.tr[hist.tr.length - 1], 3) + " / " + fmt(hist.te[hist.te.length - 1], 3);
@@ -787,15 +809,14 @@ const thumbCache = document.createElement("canvas");
 function drawNet() {
   const cv = $("#net"), dpr = devicePixelRatio || 1, r = cv.getBoundingClientRect(), W = r.width, H = r.height, g = cv.getContext("2d");
   cv.width = W * dpr; cv.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
-  const sizes = [2, ...net.sizes.slice(1, -1), 1], cols = sizes.length;
+  const sizes = net.sizes, cols = sizes.length;
   const S = Math.min(44, (H - 30) / Math.max(...sizes) - 6);
-  const cx = i => 40 + (W - 80) * i / (cols - 1), cy = (i, j) => 14 + (H - 30) * (j + 0.5) / sizes[i];
+  const cx = i => 40 + (W - 90) * i / (cols - 1), cy = (i, j) => 14 + (H - 30) * (j + 0.5) / sizes[i];
   // krawędzie
   let maxw = 1e-9; net.W.forEach(Wl => Wl.forEach(row => row.forEach(v => (maxw = Math.max(maxw, Math.abs(v))))));
   net.W.forEach((Wl, l) => {
-    const last = l === net.W.length - 1;
-    for (let j = 0; j < (last ? 1 : Wl.length); j++) for (let i = 0; i < Wl[j].length; i++) {
-      const w = last ? Wl[1][i] - Wl[0][i] : Wl[j][i];   // dla wyjścia: różnica logitów klas +1 i −1
+    for (let j = 0; j < Wl.length; j++) for (let i = 0; i < Wl[j].length; i++) {
+      const w = Wl[j][i];
       g.strokeStyle = w > 0 ? "rgba(37,99,235,0.75)" : "rgba(220,38,38,0.75)"; g.lineWidth = 0.4 + 5 * Math.min(1, Math.abs(w) / maxw);
       g.beginPath(); g.moveTo(cx(l) + S / 2, cy(l, i)); g.lineTo(cx(l + 1) - S / 2, cy(l + 1, j)); g.stroke();
     }
@@ -806,27 +827,27 @@ function drawNet() {
   thumbCache.width = n; thumbCache.height = n; const tc = thumbCache.getContext("2d");
   for (let i = 0; i < cols; i++) for (let j = 0; j < sizes[i]; j++) {
     const x0 = cx(i) - S / 2, y0 = cy(i, j) - S / 2;
-    let fn, colf;
-    if (i === 0) { fn = (x, y) => (j === 0 ? x : y) / 3; colf = v => tint(v, 0.6); }
-    else if (i === cols - 1) { fn = (x, y) => net.proba(x, y); colf = p => probTint(clampP(p)); }
-    else { fn = neuronFn(i, j); colf = actColor; }
+    const fc = i === 0 ? ["in", j] : i === cols - 1 ? ["out", j] : ["hid", i, j], m = nodeMap(fc);
     for (let a = 0; a < n; a++) for (let b = 0; b < n; b++) {
-      const x = -3.2 + 6.4 * (b + 0.5) / n, y = 3.2 - 6.4 * (a + 0.5) / n, c = colf(fn(x, y)), k = 4 * (a * n + b);
+      const x = -3.2 + 6.4 * (b + 0.5) / n, y = 3.2 - 6.4 * (a + 0.5) / n, c = m.col(m.f(x, y)), k = 4 * (a * n + b);
       img.data[k] = c[0]; img.data[k + 1] = c[1]; img.data[k + 2] = c[2]; img.data[k + 3] = 255;
     }
     tc.putImageData(img, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(thumbCache, x0, y0, S, S);
-    const sel = focus && i === focus[0] && j === focus[1];
+    const sel = sameFocus(focus, fc);
     g.strokeStyle = sel ? COL.acc : COL.ink; g.lineWidth = sel ? 3 : 1; g.strokeRect(x0, y0, S, S);
-    if (i > 0 && i < cols - 1) nodeBoxes.push({ x0, y0, S, l: i, j });
+    g.fillStyle = COL.ink; g.font = "600 11px system-ui";
+    if (i === 0) { g.textAlign = "right"; g.fillText(j ? "x₂" : "x₁", x0 - 4, y0 + S / 2 + 4); }
+    if (i === cols - 1) { g.textAlign = "left"; g.fillText(KLASA[j], x0 + S + 4, y0 + S / 2 + 4); }
+    nodeBoxes.push({ x0, y0, S, fc });
   }
   g.fillStyle = COL.muted; g.font = "11px system-ui"; g.textAlign = "center";
-  for (let i = 0; i < cols; i++) g.fillText(i === 0 ? "wejście x₁, x₂" : i === cols - 1 ? "wyjście p(+1)" : `warstwa ukryta ${i}`, cx(i), H - 3);
+  for (let i = 0; i < cols; i++) g.fillText(i === 0 ? "wejście" : i === cols - 1 ? `wyjście (${outMode.get() === "z" ? "logity z" : "softmax p"})` : `warstwa ukryta ${i}`, cx(i), H - 3);
 }
 $("#net").addEventListener("click", e => {
   const r = $("#net").getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
   const b = nodeBoxes.find(b => x >= b.x0 && x <= b.x0 + b.S && y >= b.y0 && y <= b.y0 + b.S);
   if (!b) return;
-  focus = focus && focus[0] === b.l && focus[1] === b.j ? null : [b.l, b.j]; draw();
+  focus = sameFocus(focus, b.fc) ? null : b.fc; draw();
 });
 new ResizeObserver(() => net && drawNet()).observe($("#net"));
 P.onresize = () => net && draw();
