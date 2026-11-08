@@ -1729,7 +1729,7 @@ function drawD() {
     }
     const S = sliceRes, { g, W, H } = setupCanvas($("#dMain")), n = S.grid.length;
     const lo = Math.log(Math.min(...S.grid.flat())), hi = Math.log(Math.min(Math.max(...S.grid.flat()), 50));
-    const size = Math.min(W - 160, H - 20), x0 = (W - size) / 2 - 40, y0 = 10, cs = size / n;
+    const size = Math.min(W - 220, H - 58), x0 = (W - size) / 2 - 30, y0 = 26, cs = size / n;
     for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const t = Math.max(0, Math.min(1, (Math.log(S.grid[j][i]) - lo) / (hi - lo))), c = viridis(t); g.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; g.fillRect(x0 + i * cs, y0 + (n - 1 - j) * cs, cs + 0.6, cs + 0.6); }
     // poziomice
     const Pl = { X: v => x0 + (v + 1) / 2 * size, Y: v => y0 + (1 - (v + 1) / 2) * size };
@@ -1740,11 +1740,12 @@ function drawD() {
         for (const [a, b, xa, ya, xb, yb] of E) if ((v[a] - lev) * (v[b] - lev) < 0) { const tt = (lev - v[a]) / (v[b] - v[a]); pts.push([x0 + (xa + (xb - xa) * tt + 0.5) * cs, y0 + (n - 1 - (ya + (yb - ya) * tt) + 0.5) * cs]); }
         if (pts.length >= 2) { g.beginPath(); g.moveTo(...pts[0]); g.lineTo(...pts[1]); g.stroke(); } } }
     g.fillStyle = "#fff"; g.strokeStyle = COL.ink; g.lineWidth = 2; g.beginPath(); g.arc(x0 + size / 2, y0 + size / 2, 6, 0, 7); g.fill(); g.stroke();
-    g.fillStyle = COL.ink; g.font = "12px system-ui"; g.textAlign = "left"; g.fillText("wagi po uczeniu", x0 + size / 2 + 9, y0 + size / 2 - 8);
-    g.textAlign = "center"; g.fillStyle = COL.muted; g.fillText("α (kierunek 1) od −1 do 1", x0 + size / 2, y0 + size + 14 > H ? H - 2 : y0 + size + 14);
+    g.font = "600 13px system-ui"; g.textAlign = "left"; g.lineJoin = "round"; g.strokeStyle = "rgba(30,27,46,0.85)"; g.lineWidth = 4; g.strokeText("wagi po uczeniu θ*", x0 + size / 2 + 11, y0 + size / 2 - 9); g.fillStyle = "#fff"; g.fillText("wagi po uczeniu θ*", x0 + size / 2 + 11, y0 + size / 2 - 9); g.font = "13px system-ui";
+    g.textAlign = "center"; g.fillStyle = COL.muted; g.fillText("α (kierunek δ₁) od −1 do 1", x0 + size / 2, y0 + size + 20);
+    g.save(); g.translate(x0 - 12, y0 + size / 2); g.rotate(-Math.PI / 2); g.fillText("β (kierunek δ₂) od −1 do 1", 0, 0); g.restore();
     // skala barw
     for (let i = 0; i < 100; i++) { const c = viridis(i / 99); g.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; g.fillRect(x0 + size + 30, y0 + size * (1 - i / 100), 14, size / 100 + 1); }
-    g.fillStyle = COL.ink; g.textAlign = "left"; g.fillText(fmt(Math.exp(hi), 2), x0 + size + 48, y0 + 10); g.fillText(fmt(Math.exp(lo), 3), x0 + size + 48, y0 + size); g.fillText("koszt (skala log)", x0 + size + 20, y0 + size + 16);
+    g.fillStyle = COL.ink; g.textAlign = "left"; g.fillText(fmt(Math.exp(hi), 2), x0 + size + 50, y0 + 10); g.fillText(fmt(Math.exp(lo), 3), x0 + size + 50, y0 + size); g.fillStyle = COL.muted; g.fillText("koszt (skala log)", x0 + size + 22, y0 - 10);
     eq.innerHTML = `sieć 64 → ${S.h} → 10, ${S.npar} parametrów: koszt w minimum <span class="big">${fmt(S.center, 3)}</span>, dokładność ${fmt(100 * S.acc, 1)}%`
       + `<span class="sub">Płaszczyzna θ* + α·δ₁ + β·δ₂, gdzie δ₁, δ₂ to losowe kierunki znormalizowane neuron po neuronie do norm wag θ* (Li i in. 2018). To przekrój 2D przez przestrzeń o ${S.npar} wymiarach${S.lam ? `; L2 λ = ${S.lam}` : ""}.</span>`;
     cap.textContent = "Koszt na odcinku od wag początkowych (t = 0) do wag po uczeniu (t = 1) i nieco dalej:";
