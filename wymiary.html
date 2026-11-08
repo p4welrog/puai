@@ -192,6 +192,7 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
   </aside>
   <section class="tryit panel"><h2>Spróbuj</h2><ul>
     <li><b>Punkty siodłowe:</b> w punkcie krytycznym o kształcie decydują wartości własne hesjanu. Model zabawkowy: hesjan = μI + losowa macierz symetryczna; μ mówi, jak nisko (blisko minimum globalnego) leży punkt. Przy d = 2 minimum lokalne zdarza się często nawet dla małego μ; przy d = 1000 punkt jest minimum tylko, gdy μ &gt; 2 — wyżej każdy punkt krytyczny to siodło.</li>
+    <li><b>Powierzchnia 3D:</b> przy d = 2 i μ = 0 zwykle widać siodło; zwiększaj μ, aż czerwona część zniknie i zostanie misa. Obróć powierzchnię myszą. Potem przełącz na <b>wachlarz parabol</b> i przy tym samym μ zwiększ d do 1000 — wśród zielonych krzywych pojawią się czerwone, czyli kierunki, którymi można zejść niżej.</li>
     <li>Wniosek: w sieciach neuronowych spadek gradientu rzadko „utyka w minimum lokalnym” — częściej zwalnia przy siodłach i na płaskowyżach.</li>
     <li><b>Przekrój krajobrazu:</b> naucz sieć i obejrzyj koszt na płaszczyźnie wyznaczonej przez dwa losowe kierunki wokół znalezionego minimum. Porównaj sieć wąską i szeroką oraz wpływ L2. Pamiętaj: to przekrój 2D przez przestrzeń z setkami lub tysiącami wymiarów.</li>
     <li>Dolny wykres: koszt na odcinku od wag początkowych do końcowych — zwykle spada prawie monotonicznie (Goodfellow i in. 2015).</li>
@@ -923,7 +924,7 @@ const SYM = {
   pca: [["składowe główne", "prostopadłe kierunki, wzdłuż których dane mają kolejno największą wariancję (wektory własne macierzy kowariancji)"], ["k", "liczba użytych składowych (suwak)"], ["wyjaśniona wariancja", "suma k największych wartości własnych podzielona przez sumę wszystkich"], ["rekonstrukcja", "średni obraz + rzut obrazu na k składowych głównych"]],
   cover: [["n", "liczba punktów"], ["d", "wymiar (liczba wag modelu liniowego bez obciążenia)"], ["C(n − 1, k)", "symbol Newtona: liczba k-elementowych podzbiorów zbioru (n − 1)-elementowego"], ["dychotomia", "podział punktów na dwie klasy (przypisanie etykiet ±1)"], ["położenie ogólne", "żadne d punktów nie leży w jednej podprzestrzeni wymiaru d − 1 (każde d z nich jest liniowo niezależne)"]],
   dd: [["n", "liczba próbek uczących (suwak)"], ["p", "liczba cech używanych przez model — pierwsze p z 200"], ["β", "prawdziwe wagi; ‖β‖ = 1"], ["T, T<sup>c</sup>", "zbiór cech użytych przez model i pozostałych (pominiętych)"], ["‖β<sub>T</sub>‖², ‖β<sub>T<sup>c</sup></sub>‖²", "część sygnału, którą model może uchwycić, i część, która dla niego jest szumem"], ["σ²", "wariancja szumu w y (0,25)"], ["rozwiązanie o minimalnej normie", "dla p > n równania mają nieskończenie wiele rozwiązań dokładnie przechodzących przez dane; wybieramy to o najmniejszym ‖w‖"], ["λ", "regularyzacja L2 (ridge)"]],
-  saddle: [["d", "liczba parametrów (wymiar)"], ["hesjan H", "macierz drugich pochodnych kosztu; jej wartości własne to krzywizny w kierunkach głównych"], ["wartość własna &gt; 0 / &lt; 0", "kierunek, w którym koszt rośnie / maleje — kierunek ucieczki z punktu krytycznego"], ["μ", "przesunięcie wszystkich krzywizn w górę — w modelu odpowiada temu, jak nisko (blisko dna) leży punkt"], ["indeks", "liczba ujemnych wartości własnych; 0 oznacza minimum lokalne"], ["GOE", "losowa macierz symetryczna o niezależnych elementach gaussowskich"]],
+  saddle: [["d", "liczba parametrów (wymiar)"], ["u<sub>i</sub>", "i-ty kierunek własny hesjanu (kierunek główny krzywizny)"], ["½·λ<sub>i</sub>·t²", "przybliżony koszt po przesunięciu o t od punktu krytycznego wzdłuż u<sub>i</sub> (rozwinięcie Taylora 2. rzędu)"], ["hesjan H", "macierz drugich pochodnych kosztu; jej wartości własne to krzywizny w kierunkach głównych"], ["wartość własna &gt; 0 / &lt; 0", "kierunek, w którym koszt rośnie / maleje — kierunek ucieczki z punktu krytycznego"], ["μ", "przesunięcie wszystkich krzywizn w górę — w modelu odpowiada temu, jak nisko (blisko dna) leży punkt"], ["indeks", "liczba ujemnych wartości własnych; 0 oznacza minimum lokalne"], ["GOE", "losowa macierz symetryczna o niezależnych elementach gaussowskich"]],
   slice: [["θ*", "wagi sieci po uczeniu (biała kropka)"], ["δ₁, δ₂", "losowe kierunki w przestrzeni wag, przeskalowane tak, by każdy neuron miał normę jak w θ*"], ["α, β", "współrzędne na płaszczyźnie przekroju, od −1 do 1"], ["t", "parametr odcinka θ<sub>0</sub> + t(θ* − θ<sub>0</sub>) od wag początkowych (t = 0) do końcowych (t = 1)"], ["koszt", "entropia krzyżowa na 600 obrazach cyfr"]],
 };
 function showSym(id, key) {
@@ -1601,6 +1602,55 @@ const dSel = seg($("#dSel"), [["saddle", "minima a punkty siodłowe"], ["slice",
 const dP = $("#dPar");
 const dD = slider2(dP, { label: "wymiar d (liczba parametrów)", min: 1, max: 1000, log: true, value: 2, digits: 0, on: debounce(() => drawD(), 30) });
 const dMu = slider2(dP, { label: "μ — jak nisko leży punkt krytyczny", min: 0, max: 3, step: 0.01, value: 1, on: debounce(() => drawD(), 30) });
+const sView = seg(dP, [["surf", "powierzchnia 3D"], ["fan", "wachlarz parabol"], ["spec", "widmo hesjanu"]], "surf", (v, user) => { if (user) sView._auto = false; drawD(); }, "Widok");
+const sRow = document.createElement("div"); sRow.className = "row"; dP.appendChild(sRow);
+button(sRow, "Nowa losowa macierz", () => { evCache = null; drawD(); });
+let evCache = null;
+function getEv(d) { if (!evCache || evCache.d !== d) evCache = { d, ev: eigAll(goeTri(d, R)).sort((x, y) => x - y) }; return evCache.ev; }
+function mixHex(hex, t, sh = 1) { const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255]; return `rgb(${c.map(v => Math.round((255 + (v - 255) * t) * sh)).join(",")})`; }
+// powierzchnia z = ½(a·x² + b·y²) nad kwadratem [−1, 1]² (x, y — współrzędne wzdłuż dwóch kierunków własnych)
+function drawSurf(cv, a, b, d) {
+  const { g, W, H } = setupCanvas(cv), s = Math.min(W * 0.8, H) * 0.42, ca = Math.cos(V3.yaw), sa = Math.sin(V3.yaw), cb = Math.cos(V3.pitch), sb = Math.sin(V3.pitch);
+  const pr = ([x, y, z]) => { const x1 = x * ca - y * sa, y1 = x * sa + y * ca, dd = y1 * cb - z * sb, up = y1 * sb + z * cb; return [W / 2 + s * x1, H / 2 + 10 - s * up, dd]; };
+  const ZS = 0.6, Z = (x, y) => Math.max(-1.3, Math.min(1.3, ZS * 0.5 * (a * x * x + b * y * y)));
+  const N = 26, quads = [];
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+    const x0 = -1 + 2 * i / N, x1 = -1 + 2 * (i + 1) / N, y0 = -1 + 2 * j / N, y1 = -1 + 2 * (j + 1) / N;
+    const c = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => pr([x, y, Z(x, y)])), zm = Z((x0 + x1) / 2, (y0 + y1) / 2);
+    const xm = (x0 + x1) / 2, ym = (y0 + y1) / 2, zx = ZS * a * xm, zy = ZS * b * ym, nl = Math.hypot(zx, zy, 1), sh = 0.72 + 0.28 * Math.max(0, (-zx * 0.5 - zy * 0.3 + 0.8) / nl / Math.hypot(0.5, 0.3, 0.8));
+    quads.push({ c, dep: c.reduce((t, q) => t + q[2], 0) / 4, zm, sh });
+  }
+  quads.sort((p, q) => q.dep - p.dep);
+  for (const q of quads) { g.fillStyle = mixHex(q.zm < 0 ? COL.neg : COL.ok, 0.3 + 0.6 * Math.min(1, Math.abs(q.zm) / 1.0), q.sh); g.strokeStyle = "rgba(255,255,255,0.55)"; g.lineWidth = 0.7;
+    g.beginPath(); q.c.forEach((p, k) => (k ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath(); g.fill(); g.stroke(); }
+  // przekroje wzdłuż kierunków własnych
+  const curve = (f, col) => { g.strokeStyle = col; g.lineWidth = 3; g.beginPath(); for (let i = 0; i <= 60; i++) { const t = -1 + 2 * i / 60, p = pr(f(t)); i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); } g.stroke(); };
+  curve(t => [t, 0, Z(t, 0)], a < 0 ? "#991B1B" : "#14532D"); curve(t => [0, t, Z(0, t)], b < 0 ? "#991B1B" : "#14532D");
+  const o = pr([0, 0, 0]); g.fillStyle = COL.ink; g.beginPath(); g.arc(o[0], o[1], 5, 0, 7); g.fill();
+  g.font = "13px system-ui"; g.fillStyle = COL.ink;
+  const lab = (p, txt) => { const q = pr(p); g.fillText(txt, q[0] + 6, q[1] - 6); };
+  const nm = d === 2 ? ["u₁", "u₂"] : ["u_min", "u_max"];
+  lab([1.08, 0, Z(1, 0)], `${nm[0]}: λ = ${fmt(a)}`); lab([0, 1.08, Z(0, 1)], `${nm[1]}: λ = ${fmt(b)}`);
+  g.fillStyle = COL.muted; g.font = "12px system-ui";
+  g.fillText(d === 2 ? "przeciągnij, aby obrócić; czarna kropka — punkt krytyczny" : `przeciągnij, aby obrócić; przekrój przez 2 z ${d} kierunków: najbardziej „w dół” i najbardziej „w górę”`, 10, H - 10);
+}
+// wachlarz: f(t) = ½λᵢt² wzdłuż każdego kierunku własnego
+function drawFan(cv, ev) {
+  const { g, W, H } = setupCanvas(cv), P = { W, H, X: x => (x + 1.15) / 2.3 * W, Y: y => H - 24 - (y + 1.6) / 4.9 * (H - 40) };
+  g.lineWidth = 1; for (let y = -1.5; y <= 3.01; y += 0.5) { g.strokeStyle = Math.abs(y) < 1e-9 ? "#B9B6C8" : "#EFEEF4"; g.beginPath(); g.moveTo(0, P.Y(y)); g.lineTo(W, P.Y(y)); g.stroke(); }
+  for (let x = -1; x <= 1.01; x += 0.5) { g.strokeStyle = Math.abs(x) < 1e-9 ? "#B9B6C8" : "#EFEEF4"; g.beginPath(); g.moveTo(P.X(x), 0); g.lineTo(P.X(x), H); g.stroke(); }
+  const n = ev.length, al = n > 200 ? 0.25 : n > 30 ? 0.5 : 0.95, w = n > 30 ? 1.2 : 2.6;
+  for (const lam of [...ev].sort((x, y) => (x < 0) - (y < 0))) { g.strokeStyle = lam < 0 ? COL.neg : COL.ok; g.globalAlpha = al; g.lineWidth = w; g.beginPath();
+    for (let i = 0; i <= 80; i++) { const t = -1 + 2 * i / 80, y = 0.5 * lam * t * t; i ? g.lineTo(P.X(t), P.Y(y)) : g.moveTo(P.X(t), P.Y(y)); } g.stroke(); }
+  g.globalAlpha = 1; g.fillStyle = COL.ink; g.beginPath(); g.arc(P.X(0), P.Y(0), 5, 0, 7); g.fill();
+  g.font = "12px system-ui"; g.fillStyle = COL.muted;
+  g.fillText("t — przesunięcie od punktu krytycznego wzdłuż kierunku własnego uᵢ", 10, P.H - 10);
+  g.save(); g.translate(14, 18); g.fillText("koszt względem punktu krytycznego: ½·λᵢ·t²", 0, 0); g.restore();
+}
+{ const cv = $("#dMain"); let drag = null;
+  cv.addEventListener("pointerdown", e => { if (!(dSel.get() === "saddle" && sView.get() === "surf")) return; drag = [e.clientX, e.clientY]; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointermove", e => { if (!drag) return; V3.yaw += (e.clientX - drag[0]) * 0.01; V3.pitch = Math.max(-1.4, Math.min(1.4, V3.pitch + (e.clientY - drag[1]) * 0.01)); drag = [e.clientX, e.clientY]; drawD(); });
+  cv.addEventListener("pointerup", () => (drag = null)); }
 const dH = seg(dP, [["4", "4 neurony ukryte"], ["16", "16"], ["64", "64"]], "16", null, "Sieć 64 → h → 10 (cyfry)"); dH.el = dP.lastElementChild;
 const dL2 = seg(dP, [["0", "bez L2"], ["0.003", "L2 λ = 0,003"]], "0", null); dL2.el = dP.lastElementChild;
 const dRow = document.createElement("div"); dRow.className = "row"; dP.appendChild(dRow);
@@ -1622,12 +1672,16 @@ function getSaddle() {
 }
 function drawD() {
   const k = dSel.get(), eq = $("#dEq"), cap = $("#dCap");
-  showThm("#dThm", k); showSym("#dSym", k); showCtl([dD, dMu], k === "saddle"); dH.el.hidden = dL2.el.hidden = dRow.hidden = k !== "slice";
+  showThm("#dThm", k); showSym("#dSym", k); showCtl([dD, dMu], k === "saddle"); sView.el.hidden = sRow.hidden = k !== "saddle"; dH.el.hidden = dL2.el.hidden = dRow.hidden = k !== "slice";
   if (k === "saddle") {
-    const d = Math.round(dD.get()), mu = dMu.get(), t = goeTri(Math.max(d, 1), R);
-    let ev = d <= 400 ? eigAll(t) : null;
-    const neg = ev ? ev.filter(v => v + mu < 0).length : countBelow(t, -mu);
-    const shifted = ev ? ev.map(v => v + mu) : null;
+    const d = Math.max(1, Math.round(dD.get())), mu = dMu.get(), ev = getEv(d);
+    const neg = ev.filter(v => v + mu < 0).length, shifted = ev.map(v => v + mu);
+    sView.disable("surf", d < 2, "Powierzchnia wymaga co najmniej 2 kierunków (d ≥ 2)");
+    if (d < 2 && sView.get() === "surf") { sView._auto = true; sView.set("fan"); } else if (d >= 2 && sView._auto) { sView._auto = false; sView.set("surf"); }
+    const view = sView.get();
+    if (view === "surf") drawSurf($("#dMain"), shifted[0], shifted[d - 1], d);
+    else if (view === "fan") drawFan($("#dMain"), shifted);
+    else {
     const semi = x => { const y = x - mu; return Math.abs(y) < 2 ? Math.sqrt(4 - y * y) / (2 * Math.PI) : 0; };
     if (shifted && d < 30) { // mało wartości własnych: rysuj jako pionowe kreski
       const hc = histChart($("#dMain"), [], { lo: -3, hi: 6, curve: semi, tick: 1, xlabel: "wartości własne hesjanu w punkcie krytycznym (kreski) i rozkład dla d → ∞ (krzywa)", vlines: [{ x: 0, label: "0" }] });
@@ -1636,9 +1690,14 @@ function drawD() {
     else { const vals = []; for (let i = 0; i < 4000; i++) { const u = R.u(); // próbkowanie półokręgu do ilustracji przy d > 400
         let x; do { x = -2 + 4 * R.u(); } while (R.u() * (1 / Math.PI) > Math.sqrt(4 - x * x) / (2 * Math.PI)); vals.push(x + mu); }
       histChart($("#dMain"), vals, { lo: -3, hi: 6, bins: 90, colorFn: v => (v < 0 ? COL.neg : COL.ok), curve: semi, tick: 1, xlabel: "wartości własne (rozkład dla d → ∞; liczba ujemnych policzona dokładnie)", vlines: [{ x: 0, label: "0" }] }); }
+    }
+    const viewTxt = view === "surf" ? (d === 2 ? "Powierzchnia kosztu wokół punktu krytycznego: zielona — w górę, czerwona — w dół. Dwie dodatnie krzywizny dają misę (minimum), różne znaki — siodło. Zwiększaj μ i obserwuj, jak siodło zamienia się w misę."
+        : `Przy d = ${d} powierzchni nie da się narysować; to przekrój przez dwa skrajne kierunki własne. Jeśli w kierunku u_min krzywa idzie w dół, punkt jest siodłem — niezależnie od pozostałych ${d - 1} kierunków.`)
+      : view === "fan" ? `Każda krzywa to przekrój kosztu wzdłuż jednego z ${d} kierunków własnych. Minimum = wszystkie krzywe zielone. Zwiększaj d przy stałym μ: pojawiają się czerwone kierunki spadku.` : "";
     const isMin = neg === 0;
     eq.innerHTML = `d = ${d}, μ = ${fmt(mu)}: ujemnych wartości własnych <span class="big">${neg}</span> z ${d} → ${isMin ? "<b style='color:var(--ok)'>minimum lokalne</b>" : `<b class='neg'>punkt siodłowy</b> (${neg} kierunków spadku)`}`
       + `<span class="sub">Model zabawkowy (Bray–Dean 2007, Dauphin i in. 2014): hesjan = μI + losowa macierz symetryczna o półokrągłym rozkładzie wartości własnych na [−2, 2]. Punkt krytyczny jest minimum tylko wtedy, gdy wszystkie d wartości własnych są dodatnie. Zielone — kierunki „pod górę”, czerwone — kierunki ucieczki.</span>`;
+    if (viewTxt) eq.innerHTML += `<span class="sub">${viewTxt}</span>`;
     cap.textContent = "Prawdopodobieństwo, że punkt krytyczny jest minimum lokalnym, w funkcji μ (Monte Carlo):";
     const S = getSaddle(), cols = ["#B9B6C8", COL.muted, COL.ok, COL.pos, COL.acc, COL.ink];
     const nearest = S.dims.reduce((b, v) => (Math.abs(Math.log(v / Math.max(d, 1))) < Math.abs(Math.log(b / Math.max(d, 1))) ? v : b), S.dims[0]);
