@@ -856,7 +856,7 @@ const THM = {
   shell: ["thm", "Fakt: objętość skorupy kuli",
     "Dla kuli jednostkowej w ℝ<sup>d</sup> i 0 &lt; ε &lt; 1 udział objętości warstwy {x : 1 − ε ≤ ‖x‖ ≤ 1} wynosi 1 − (1 − ε)<sup>d</sup> ≥ 1 − e<sup>−εd</sup>.",
     "Gdy d jest duże w porównaniu z 1/ε, prawie cała objętość kuli leży tuż przy jej brzegu. Losując punkt równomiernie z kuli, prawie na pewno trafimy w cienką skorupę.",
-    "Wynika wprost z V<sub>d</sub>(r) ∝ r<sup>d</sup>."],
+    "Wynika wprost z V<sub>d</sub>(r) ∝ r<sup>d</sup>. Dla kuli o promieniu ρ i skorupy grubości ε·ρ udział jest ten sam: 1 − ((ρ − ερ)/ρ)<sup>d</sup> = 1 − (1 − ε)<sup>d</sup> — liczy się tylko stosunek grubości do promienia."],
   gauss: ["thm", "Twierdzenie: koncentracja normy wektora gaussowskiego",
     "Jeśli x ~ N(0, I<sub>d</sub>), to E‖x‖ = √d − O(1/√d), Var‖x‖ → 1/2, a dla każdego t &gt; 0: P(|‖x‖ − E‖x‖| ≥ t) ≤ 2 e<sup>−t²/2</sup> (nierówność koncentracyjna dla funkcji 1-lipschitzowskich wektora gaussowskiego, Tsirelson–Ibragimov–Sudakov).",
     "Norma próbki prawie zawsze różni się od √d o mniej niż kilka jednostek, niezależnie od wymiaru. Próbki leżą na „bańce” o promieniu √d i stałej grubości, choć gęstość jest największa w zerze — bo objętość warstwy o promieniu r rośnie jak r<sup>d−1</sup>.",
@@ -906,7 +906,7 @@ const THM = {
 // objaśnienia symboli we wzorach (ramka „Oznaczenia”)
 const SYM = {
   vol: [["d", "wymiar przestrzeni (liczba cech)"], ["[−1, 1]<sup>d</sup>", "sześcian o krawędzi 2 i środku w zerze"], ["kula wpisana", "punkty x z ‖x‖ ≤ 1, gdzie ‖x‖ = √(x₁² + … + x<sub>d</sub>²)"], ["Γ", "funkcja gamma — uogólnienie silni: Γ(m + 1) = m!"], ["√d", "odległość narożnika sześcianu od środka"]],
-  shell: [["ε", "grubość skorupy (suwak)"], ["r", "odległość punktu od środka kuli jednostkowej"], ["d·r<sup>d−1</sup>", "gęstość promienia punktu losowanego równomiernie z kuli — rośnie bardzo szybko przy r → 1"]],
+  shell: [["ε", "grubość skorupy jako ułamek promienia (nie średnicy): przy ε = 0,05 skorupa zajmuje zewnętrzne 5% promienia, czyli 2,5% średnicy z każdej strony"], ["r", "odległość punktu od środka kuli jednostkowej"], ["d·r<sup>d−1</sup>", "gęstość promienia punktu losowanego równomiernie z kuli — rośnie bardzo szybko przy r → 1"]],
   gauss: [["N(0, I<sub>d</sub>)", "wielowymiarowy rozkład normalny: d niezależnych współrzędnych o średniej 0 i wariancji 1"], ["‖x‖", "norma (długość) wektora — odległość próbki od zera"], ["E, Var", "wartość oczekiwana i wariancja"], ["t", "dopuszczalne odchylenie normy od jej średniej"]],
   orth: [["u, v", "losowe wektory jednostkowe (kierunki)"], ["⟨u, v⟩ = cos∠", "iloczyn skalarny, dla wektorów jednostkowych równy cosinusowi kąta między nimi; 0 oznacza prostopadłość"], ["1/√d", "typowa wielkość cosinusa (odchylenie standardowe)"]],
   dist: [["Q", "punkt zapytania"], ["D<sub>i</sub> = ‖X<sub>i</sub> − Q‖", "odległość i-tego punktu od zapytania"], ["d<sub>min</sub>, d<sub>max</sub>", "odległość najbliższego i najdalszego punktu"], ["(d<sub>max</sub> − d<sub>min</sub>)/d<sub>min</sub>", "kontrast odległości — dąży do 0"]],
@@ -937,7 +937,7 @@ const aP = $("#aPar");
 const aD = slider2(aP, { label: "wymiar d", min: 1, max: 1000, log: true, value: 2, digits: 0, on: debounce(() => drawA(), 30) });
 const aQuick = document.createElement("div"); aQuick.className = "row"; aQuick.style.marginBottom = "8px"; aP.appendChild(aQuick);
 for (const v of [1, 2, 3, 10, 100, 1000]) button(aQuick, "d = " + v, () => { aD.set(v); drawA(); });
-const aEps = slider2(aP, { label: "grubość skorupy ε", min: 0.01, max: 0.5, step: 0.01, value: 0.05, on: debounce(() => drawA(), 30) });
+const aEps = slider2(aP, { label: "grubość skorupy ε (ułamek promienia)", min: 0.01, max: 0.5, step: 0.01, value: 0.05, on: debounce(() => drawA(), 30) });
 const aView = seg(aP, [["pic", "rysunek (d ≤ 3)"], ["hist", "histogram odległości"]], "pic", () => drawA(), "Widok"); aView.el = aP.lastElementChild;
 const aRow = document.createElement("div"); aRow.className = "row"; aP.appendChild(aRow);
 button(aRow, "Losuj ponownie", () => { R = ML.rng(Math.floor(Math.random() * 1e9)); volCache = null; ballCache = null; drawA(); });
