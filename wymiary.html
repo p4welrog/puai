@@ -1226,12 +1226,28 @@ function drawA() {
       const cs = pts.map(p => p.cos);
       histChart($("#aMain"), cs, { lo: -1, hi: 1, bins: 80, colorFn: v => (Math.abs(v) < t ? COL.acc : "#9C98B0"), xlabel: "cos∠(u, v) dla losowych kierunków v", tick: 0.25, vlines: d > 1 ? [{ x: -1 / Math.sqrt(d), label: "−1/√d", align: "right" }, { x: 1 / Math.sqrt(d), label: "1/√d" }] : [] });
     } else {
-      const N = 150, Gm = gramMatrix(d, N), { g, W, H } = setupCanvas($("#aMain")), size = Math.min(W - 140, H - 20), x0 = (W - size) / 2 - 40, y0 = 10, c = size / N;
-      for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) { const col = tint(Gm.G[i][j] * 2.2, 1); g.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`; g.fillRect(x0 + j * c, y0 + i * c, c + 0.5, c + 0.5); }
-      g.strokeStyle = COL.line; g.strokeRect(x0, y0, size, size);
-      for (let i = 0; i < 100; i++) { const col = tint((1 - 2 * i / 99) * 2.2, 1); g.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`; g.fillRect(x0 + size + 24, y0 + size * i / 100, 14, size / 100 + 1); }
-      g.fillStyle = COL.ink; g.font = "12px system-ui"; g.textAlign = "left"; g.fillText("cos = 1", x0 + size + 42, y0 + 10); g.fillText("0", x0 + size + 42, y0 + size / 2 + 4); g.fillText("−1", x0 + size + 42, y0 + size);
-      g.fillStyle = COL.muted; g.fillText(`${N} losowych kierunków w ℝ^${d}: komórka (i, j) = cos∠(vᵢ, vⱼ)`, x0, H - 4 > y0 + size + 14 ? y0 + size + 14 : H - 4);
+      const N = 150, Gm = gramMatrix(d, N), { g, W, H } = setupCanvas($("#aMain")), narrow = W < 640;
+      const top = narrow ? 40 : 46, left = narrow ? 44 : 64, bottom = 36, legendW = narrow ? 64 : 150;
+      const size = Math.min(W - left - legendW, H - top - bottom), x0 = left + Math.max(0, (W - left - legendW - size) / 2), y0 = top, c = size / N;
+      g.textAlign = "left"; g.fillStyle = COL.ink; g.font = `600 ${narrow ? 12 : 14}px system-ui`;
+      g.fillText(narrow ? `Cosinusy ${N} kierunków w ℝ^${d}` : `Macierz cosinusów ${N} losowych kierunków v₁, …, v₁₅₀ w ℝ^${d}`, narrow ? 6 : x0, 16);
+      g.font = "12px system-ui"; g.fillStyle = COL.muted;
+      g.fillText(narrow ? "komórka (i, j) = cos∠(vᵢ, vⱼ)" : "komórka w wierszu i i kolumnie j = cos∠(vᵢ, vⱼ); przekątna = 1 (wektor z samym sobą), macierz jest symetryczna", narrow ? 6 : x0, narrow ? 31 : 34);
+      for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) { const col = tint(Gm.G[a][b], 0.6); g.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`; g.fillRect(x0 + b * c, y0 + a * c, c + 0.5, c + 0.5); }
+      g.strokeStyle = COL.line; g.lineWidth = 1; g.strokeRect(x0, y0, size, size);
+      // osie: numery wektorów
+      g.fillStyle = COL.muted; g.font = "11px system-ui";
+      for (const k of [1, 50, 100, 150]) { const pos = (k - 0.5) * c;
+        g.textAlign = "center"; g.fillText(String(k), x0 + pos, y0 + size + 13);
+        g.textAlign = "right"; g.fillText(String(k), x0 - 5, y0 + pos + 4); }
+      g.textAlign = "center"; g.fillStyle = COL.ink; g.font = "12px system-ui";
+      g.fillText(narrow ? "j (kolumna)" : "kolumna j — numer drugiego wektora", x0 + size / 2, y0 + size + 28);
+      g.save(); g.translate(x0 - (narrow ? 30 : 40), y0 + size / 2); g.rotate(-Math.PI / 2); g.fillText(narrow ? "i (wiersz)" : "wiersz i — numer pierwszego wektora", 0, 0); g.restore();
+      // skala barw
+      const bx = x0 + size + (narrow ? 10 : 24);
+      for (let k = 0; k < 100; k++) { const col = tint(1 - 2 * k / 99, 0.6); g.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`; g.fillRect(bx, y0 + size * k / 100, 12, size / 100 + 1); }
+      g.fillStyle = COL.ink; g.textAlign = "left"; g.font = "12px system-ui";
+      g.fillText(narrow ? "1" : "1 — równoległe", bx + 17, y0 + 10); g.fillText(narrow ? "0" : "0 — prostopadłe", bx + 17, y0 + size / 2 + 4); g.fillText(narrow ? "−1" : "−1 — przeciwne", bx + 17, y0 + size - 2);
     }
     const eqTxt = view === "gram"
       ? (() => { const Gm = gramMatrix(d, 150); return `d = ${d}, 150 wektorów: największe |cos| = <span class="big">${fmt(Gm.max, 3)}</span>, średnie |cos| = ${fmt(Gm.mean, 3)}`
