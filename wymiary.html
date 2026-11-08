@@ -85,6 +85,11 @@ details.sym dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px
 details.sym dt { font-weight: 600; white-space: nowrap; } details.sym dd { margin: 0; color: var(--ink); }
 details.sym p { margin: 8px 0 0; color: var(--muted); }
 @media (max-width: 560px) { details.sym dl { grid-template-columns: 1fr; } details.sym dd { margin-bottom: 6px; } }
+
+/* opcje i przyciski chwilowo niedostępne */
+.seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
+.seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
+button.btn:disabled { cursor: not-allowed; }
 </style>
 <style>
 canvas.big { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: 62vh; touch-action: none; border-radius: 6px; }
@@ -116,13 +121,13 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
   </section>
   <aside class="rail">
     <div class="panel"><h3>Zjawisko</h3><div id="aSel"></div></div>
-    <div class="panel"><h3>Parametry</h3><div id="aPar"></div></div>
+    <div class="panel"><h3>Parametry</h3><div id="aPar"></div><div class="progress"><i id="aProg"></i></div></div>
   </aside>
   <section class="tryit panel"><h2>Spróbuj</h2><ul>
     <li><b>Objętość:</b> porównaj rysunki dla d = 1, 2, 3 z histogramami dla tych samych d — histogram to jedyny „rysunek”, jaki zostaje dla d &gt; 3. Przy d = 2 kula zajmuje 79% kwadratu, przy d = 3 — 52%, przy d = 10 — 0,25%, przy d = 20 — 2,5·10⁻⁸. Losowe punkty z sześcianu prawie zawsze leżą „w narożnikach”, daleko od środka.</li>
     <li><b>Skorupa:</b> ustaw ε = 0,05 i obejrzyj rysunki dla d = 1, 2, 3 (5%, 9,75%, 14,3% punktów w skorupie), potem zwiększaj d. Przy d = 100 ponad 99% objętości kuli leży w cienkiej skorupie przy brzegu.</li>
     <li><b>Bańka gaussowska:</b> zacznij od rysunków dla d = 1, 2, 3, potem przejdź do portretu promieniowego i zwiększaj d — chmura zamienia się w pierścień. Gęstość N(0, I) jest największa w zerze, a jednak przy d = 100 żadna z 2000 próbek nie leży bliżej niż ok. 8 od środka — wszystkie mają normę ≈ √d. Typowy punkt to nie punkt najbardziej prawdopodobny.</li>
-    <li><b>Ortogonalność:</b> przy d = 1000 cosinus kąta między dwoma losowymi wektorami prawie nigdy nie przekracza 0,1 — losowe kierunki są prawie prostopadłe, więc przestrzeń mieści ogromnie wiele „prawie niezależnych” kierunków.</li>
+    <li><b>Ortogonalność:</b> przejdź przez d = 1, 2, 3 (rysunek), potem portret kątowy dla dużego d — losowe kierunki zbiegają się do 90°. W widoku „wiele wektorów” mapa cosinusów 150 kierunków z pstrokatej staje się jednolicie szara. Przy d = 1000 cosinus kąta między dwoma losowymi wektorami prawie nigdy nie przekracza 0,1 — losowe kierunki są prawie prostopadłe, więc przestrzeń mieści ogromnie wiele „prawie niezależnych” kierunków.</li>
     <li><b>Odległości:</b> najbliższy i najdalszy punkt są coraz bardziej podobnie odlegli (to samo zjawisko co w k-NN).</li>
   </ul></section>
 </main>
@@ -231,9 +236,11 @@ function seg(root, options, value, on, label) {
   const btns = options.map(([v, t]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.dataset.v = v; wrap.appendChild(b); return b; });
   let cur = value;
   const sync = () => btns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === String(cur))));
-  btns.forEach(b => b.addEventListener("click", () => { cur = b.dataset.v; sync(); on && on(cur); }));
+  btns.forEach(b => b.addEventListener("click", () => { if (b.disabled) return; cur = b.dataset.v; sync(); on && on(cur, true); }));
   sync(); root.appendChild(wrap);
-  return { get: () => cur, set: v => { cur = String(v); sync(); } };
+  // disable(v, flag, title): wyszarza opcję v (z podpowiedzią title, gdy jest wyłączona)
+  const disable = (v, flag, title = "") => { const b = btns.find(x => x.dataset.v === String(v)); if (!b) return; b.disabled = !!flag; b.title = flag ? title : ""; };
+  return { get: () => cur, set: v => { cur = String(v); sync(); }, disable, el: wrap };
 }
 function check(root, label, value, on) {
   const l = document.createElement("label"); l.className = "check";
@@ -908,7 +915,7 @@ const SYM = {
   vol: [["d", "wymiar przestrzeni (liczba cech)"], ["[−1, 1]<sup>d</sup>", "sześcian o krawędzi 2 i środku w zerze"], ["kula wpisana", "punkty x z ‖x‖ ≤ 1, gdzie ‖x‖ = √(x₁² + … + x<sub>d</sub>²)"], ["Γ", "funkcja gamma — uogólnienie silni: Γ(m + 1) = m!"], ["√d", "odległość narożnika sześcianu od środka"]],
   shell: [["ε", "grubość skorupy jako ułamek promienia (nie średnicy): przy ε = 0,05 skorupa zajmuje zewnętrzne 5% promienia, czyli 2,5% średnicy z każdej strony"], ["r", "odległość punktu od środka kuli jednostkowej"], ["d·r<sup>d−1</sup>", "gęstość promienia punktu losowanego równomiernie z kuli — rośnie bardzo szybko przy r → 1"]],
   gauss: [["N(0, I<sub>d</sub>)", "wielowymiarowy rozkład normalny: d niezależnych współrzędnych o średniej 0 i wariancji 1"], ["‖x‖", "norma (długość) wektora — odległość próbki od zera"], ["E, Var", "wartość oczekiwana i wariancja"], ["t", "dopuszczalne odchylenie normy od jej średniej"]],
-  orth: [["u, v", "losowe wektory jednostkowe (kierunki)"], ["⟨u, v⟩ = cos∠", "iloczyn skalarny, dla wektorów jednostkowych równy cosinusowi kąta między nimi; 0 oznacza prostopadłość"], ["1/√d", "typowa wielkość cosinusa (odchylenie standardowe)"]],
+  orth: [["u, v", "losowe wektory jednostkowe (kierunki); u jest ustalony (strzałka), v losujemy"], ["t", "próg: pary z |cos| < t uznajemy za „prawie prostopadłe” (suwak)"], ["pas wokół równika", "zbiór kierunków v z |cos∠(u, v)| < t — dla d = 3 strefa między dwoma przerywanymi okręgami"], ["⟨u, v⟩ = cos∠", "iloczyn skalarny, dla wektorów jednostkowych równy cosinusowi kąta między nimi; 0 oznacza prostopadłość"], ["1/√d", "typowa wielkość cosinusa (odchylenie standardowe)"]],
   dist: [["Q", "punkt zapytania"], ["D<sub>i</sub> = ‖X<sub>i</sub> − Q‖", "odległość i-tego punktu od zapytania"], ["d<sub>min</sub>, d<sub>max</sub>", "odległość najbliższego i najdalszego punktu"], ["(d<sub>max</sub> − d<sub>min</sub>)/d<sub>min</sub>", "kontrast odległości — dąży do 0"]],
   edge: [["r", "ułamek danych, który ma się znaleźć w sąsiedztwie (suwak)"], ["r<sup>1/d</sup>", "krawędź podsześcianu o objętości r — czyli jaką część zakresu każdej cechy musi objąć sąsiedztwo"], ["10<sup>d</sup>", "liczba próbek potrzebna, żeby na każdą oś przypadało 10 różnych wartości"]],
   proj: [["{−1, 1}<sup>d</sup>", "wierzchołki sześcianu: wszystkie wektory o współrzędnych ±1 (2<sup>d</sup> punktów)"], ["θ", "losowy kierunek jednostkowy; rzut punktu x to liczba θ·x"], ["rzut na płaszczyznę", "dwa prostopadłe losowe kierunki θ₁, θ₂ dają współrzędne (θ₁·x, θ₂·x)"], ["N(0, σ²)", "rozkład normalny — czarna krzywa na dolnym wykresie"]],
@@ -938,10 +945,20 @@ const aD = slider2(aP, { label: "wymiar d", min: 1, max: 1000, log: true, value:
 const aQuick = document.createElement("div"); aQuick.className = "row"; aQuick.style.marginBottom = "8px"; aP.appendChild(aQuick);
 for (const v of [1, 2, 3, 10, 100, 1000]) button(aQuick, "d = " + v, () => { aD.set(v); drawA(); });
 const aEps = slider2(aP, { label: "grubość skorupy ε (ułamek promienia)", min: 0.01, max: 0.5, step: 0.01, value: 0.05, on: debounce(() => drawA(), 30) });
-const aView = seg(aP, [["pic", "rysunek (d ≤ 3)"], ["hist", "histogram odległości"]], "pic", () => drawA(), "Widok"); aView.el = aP.lastElementChild;
-const gView = seg(aP, [["pic", "rysunek (d ≤ 3)"], ["portrait", "portret promieniowy"], ["hist", "histogram normy"]], "portrait", () => drawA(), "Widok"); gView.el = aP.lastElementChild;
+const aView = seg(aP, [["pic", "rysunek (d ≤ 3)"], ["hist", "histogram odległości"]], "pic", (v, user) => { if (user) aView._auto = false; drawA(); }, "Widok");
+const gView = seg(aP, [["pic", "rysunek (d ≤ 3)"], ["portrait", "portret promieniowy"], ["hist", "histogram normy"]], "portrait", (v, user) => { if (user) gView._auto = false; drawA(); }, "Widok");
+const oView = seg(aP, [["pic", "rysunek (d ≤ 3)"], ["portrait", "portret kątowy"], ["hist", "histogram cos"], ["gram", "wiele wektorów"]], "pic", (v, user) => { if (user) oView._auto = false; drawA(); }, "Widok");
+const aT = slider2(aP, { label: "próg prawie prostopadłości t (|cos| < t)", min: 0.01, max: 0.5, step: 0.01, value: 0.1, on: debounce(() => drawA(), 30) });
+// Widok „rysunek” istnieje tylko dla d ≤ 3: wyszarz go, a przy większym d przełącz (i podświetl) widok zastępczy.
+// Gdy d wróci do ≤ 3, a przełączenie było automatyczne, wróć do rysunku.
+function pickView(sg, d, fallback) {
+  const ok = d <= 3; sg.disable("pic", !ok, "Rysunek jest dostępny tylko dla d ≤ 3");
+  if (!ok && sg.get() === "pic") { sg._auto = true; sg.set(fallback); }
+  else if (ok && sg._auto) { sg._auto = false; sg.set("pic"); }
+  return sg.get();
+}
 const aRow = document.createElement("div"); aRow.className = "row"; aP.appendChild(aRow);
-button(aRow, "Losuj ponownie", () => { R = ML.rng(Math.floor(Math.random() * 1e9)); volCache = null; ballCache = null; gaussCache = null; drawA(); });
+button(aRow, "Losuj ponownie", () => { R = ML.rng(Math.floor(Math.random() * 1e9)); volCache = null; ballCache = null; gaussCache = null; dirCache = null; gramCache = null; drawA(); });
 // punkty z sześcianu [−1, 1]^d zapamiętane, żeby obrót i przełączanie widoku nie losowały ich od nowa
 let volCache = null;
 function volPoints(d, N) {
@@ -975,6 +992,62 @@ function drawGauss3(cv, pts) {
   g.fillStyle = COL.ink; g.beginPath(); const o = pr([0, 0, 0]); g.arc(o[0], o[1], 3.5, 0, 7); g.fill();
   g.fillStyle = COL.muted; g.font = "12px system-ui"; g.fillText("przeciągnij, aby obrócić; przerywana sfera: promień √3", 10, H - 10);
 }
+// losowe kierunki jednostkowe w ℝ^d; u = e₁, więc cos∠(u, v) = v₁
+let dirCache = null;
+function dirPoints(d, N) {
+  if (dirCache && dirCache.d === d) return dirCache.pts;
+  const pts = []; for (let i = 0; i < N; i++) { const v = gaussVec(d), n = norm(v); pts.push({ c: d <= 3 ? Array.from(v, x => x / n) : null, cos: v[0] / n, side: R.u() < 0.5 ? 1 : -1, rad: 0.62 + 0.36 * R.u() }); }
+  dirCache = { d, pts }; return pts;
+}
+// udział kierunków z |cos| < t: dokładnie dla d = 2, 3, całkowanie numeryczne gęstości ∝ (1 − x²)^((d−3)/2) dla d > 3
+function bandShare(d, t) {
+  if (d === 1) return 0; if (d === 2) return 1 - 2 * Math.acos(t) / Math.PI; if (d === 3) return t;
+  const f = x => Math.exp((d - 3) / 2 * Math.log(Math.max(1e-300, 1 - x * x))), simp = (a, b, n = 2000) => { const h = (b - a) / n; let sum = f(a) + f(b); for (let i = 1; i < n; i++) sum += f(a + i * h) * (i % 2 ? 4 : 2); return sum * h / 3; };
+  return Math.min(1, simp(0, t) / simp(0, 1));
+}
+function drawOrth3(cv, pts, t) {
+  const { g, W, H } = setupCanvas(cv), s = Math.min(W, H) * 0.42, ca = Math.cos(V3.yaw), sa = Math.sin(V3.yaw), cb = Math.cos(V3.pitch), sb = Math.sin(V3.pitch);
+  // u = e₁ rysujemy jako oś pionową (biegun północny): współrzędna „cos” idzie w górę
+  const pr = ([x, y, z]) => { const x1 = x * ca - y * sa, y1 = x * sa + y * ca, d = y1 * cb - z * sb, up = y1 * sb + z * cb; return [W / 2 + s * x1, H / 2 - s * up, d]; };
+  const circ = (f, col, w = 1.2, dash = []) => { g.strokeStyle = col; g.lineWidth = w; g.setLineDash(dash); g.beginPath(); for (let i = 0; i <= 96; i++) { const a = 2 * Math.PI * i / 96, q = pr(f(Math.cos(a), Math.sin(a))); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); } g.stroke(); g.setLineDash([]); };
+  circ((c, q) => [c, q, 0], "rgba(30,27,46,0.35)"); circ((c, q) => [c, 0, q], "rgba(30,27,46,0.25)"); circ((c, q) => [0, c, q], "rgba(30,27,46,0.25)");
+  const items = pts.map(p => ({ p, q: pr([p.c[1], p.c[2], p.c[0]]) })).sort((a, b) => b.q[2] - a.q[2]);
+  for (const it of items) { g.fillStyle = Math.abs(it.p.cos) < t ? COL.acc : "#9C98B0"; g.globalAlpha = 0.25 + 0.6 * (1 - (it.q[2] + 1) / 2); g.fillRect(it.q[0] - 1.6, it.q[1] - 1.6, 3.2, 3.2); }
+  g.globalAlpha = 1; const rr = Math.sqrt(1 - t * t);
+  circ((c, q) => [rr * c, rr * q, t], COL.acc, 1.8, [5, 4]); circ((c, q) => [rr * c, rr * q, -t], COL.acc, 1.8, [5, 4]);
+  const o = pr([0, 0, 0]), n = pr([0, 0, 1.18]); g.strokeStyle = g.fillStyle = COL.ink; g.lineWidth = 2.5; g.beginPath(); g.moveTo(o[0], o[1]); g.lineTo(n[0], n[1]); g.stroke();
+  g.font = "700 15px system-ui"; g.fillText("u", n[0] + 6, n[1]);
+  g.fillStyle = COL.muted; g.font = "12px system-ui"; g.fillText("przeciągnij, aby obrócić; przerywane okręgi: granice pasa |cos| < t wokół równika", 10, H - 10);
+}
+// macierz cosinusów N losowych kierunków i największe |cos| w funkcji N dla kilku d
+let gramCache = null, gramCurves = null, gramBusy = false;
+function gramMatrix(d, N) {
+  if (gramCache && gramCache.d === d) return gramCache;
+  const V = []; for (let i = 0; i < N; i++) { const v = gaussVec(d), n = norm(v); for (let j = 0; j < d; j++) v[j] /= n; V.push(v); }
+  const G = Array.from({ length: N }, () => new Float64Array(N)); let mx = 0, sum = 0;
+  for (let i = 0; i < N; i++) { G[i][i] = 1; for (let j = i + 1; j < N; j++) { let c = 0; const a = V[i], b = V[j]; for (let k = 0; k < d; k++) c += a[k] * b[k]; G[i][j] = G[j][i] = c; mx = Math.max(mx, Math.abs(c)); sum += Math.abs(c); } }
+  return (gramCache = { d, N, G, max: mx, mean: sum / (N * (N - 1) / 2) });
+}
+function computeGramCurves() { // asynchronicznie, z paskiem postępu
+  if (gramCurves || gramBusy) return; gramBusy = true;
+  const dims = [10, 100, 1000], Nmax = 1000, Ns = intsLog(2, Nmax, 30), RR = ML.rng(77), out = {};
+  let di = 0, V = null, j = 0, prefMax = null;
+  const step = () => {
+    const t0 = performance.now();
+    while (performance.now() - t0 < 40 && di < dims.length) {
+      const d = dims[di];
+      if (!V) { V = []; for (let i = 0; i < Nmax; i++) { const v = new Float64Array(d); let n2 = 0; for (let k = 0; k < d; k++) { v[k] = RR.n(); n2 += v[k] * v[k]; } const n = Math.sqrt(n2); for (let k = 0; k < d; k++) v[k] /= n; V.push(v); } prefMax = new Float64Array(Nmax); j = 1; }
+      // wiersz j: największe |cos| z wektorami 0…j−1
+      let m = prefMax[j - 1]; const b = V[j]; for (let i = 0; i < j; i++) { let c = 0; const a = V[i]; for (let k = 0; k < d; k++) c += a[k] * b[k]; if (Math.abs(c) > m) m = Math.abs(c); }
+      prefMax[j] = m; j++;
+      if (j >= Nmax) { out[d] = Ns.map(N => prefMax[N - 1]); di++; V = null; }
+    }
+    const done = di + (V ? j / Nmax : 0); $("#aProg").style.width = (100 * done / dims.length) + "%";
+    if (di < dims.length) requestAnimationFrame(step);
+    else { gramCurves = { dims, Ns, out }; gramBusy = false; setTimeout(() => ($("#aProg").style.width = "0"), 500); if (aSel.get() === "orth" && oView.get() === "gram") drawA(); }
+  };
+  requestAnimationFrame(step);
+}
 // rysunek 3D: sześcian, kula, punkty; obrót myszą
 const V3 = { yaw: -0.6, pitch: 0.35 };
 function drawVol3(cv, pts, shellEps = null) {   // shellEps ≠ null: widok skorupy (bez sześcianu)
@@ -1001,8 +1074,8 @@ function drawVol3(cv, pts, shellEps = null) {   // shellEps ≠ null: widok skor
   g.fillStyle = COL.muted; g.font = "12px system-ui"; g.fillText("przeciągnij, aby obrócić", 10, H - 10);
 }
 { const cv = $("#aMain"); let drag = null;
-  cv.addEventListener("pointerdown", e => { const k = aSel.get(); if (!(Math.round(aD.get()) === 3 && (((k === "vol" || k === "shell") && aView.get() === "pic") || (k === "gauss" && gView.get() === "pic")))) return; drag = [e.clientX, e.clientY]; cv.setPointerCapture(e.pointerId); });
-  cv.addEventListener("pointermove", e => { if (!drag) return; V3.yaw += (e.clientX - drag[0]) * 0.01; V3.pitch = Math.max(-1.4, Math.min(1.4, V3.pitch + (e.clientY - drag[1]) * 0.01)); drag = [e.clientX, e.clientY]; const k = aSel.get(); if (k === "vol") drawVol3(cv, volPoints(3, 3000)); else if (k === "shell") drawVol3(cv, ballPoints(3, 3000), aEps.get()); else drawGauss3(cv, gaussPoints(3, 2000)); });
+  cv.addEventListener("pointerdown", e => { const k = aSel.get(); if (!(Math.round(aD.get()) === 3 && (((k === "vol" || k === "shell") && aView.get() === "pic") || (k === "gauss" && gView.get() === "pic") || (k === "orth" && oView.get() === "pic")))) return; drag = [e.clientX, e.clientY]; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointermove", e => { if (!drag) return; V3.yaw += (e.clientX - drag[0]) * 0.01; V3.pitch = Math.max(-1.4, Math.min(1.4, V3.pitch + (e.clientY - drag[1]) * 0.01)); drag = [e.clientX, e.clientY]; const k = aSel.get(); if (k === "vol") drawVol3(cv, volPoints(3, 3000)); else if (k === "shell") drawVol3(cv, ballPoints(3, 3000), aEps.get()); else if (k === "orth") drawOrth3(cv, dirPoints(3, 1500), aT.get()); else drawGauss3(cv, gaussPoints(3, 2000)); });
   cv.addEventListener("pointerup", () => (drag = null)); }
 const aCurves = {};
 const volFrac = d => Math.exp((d / 2) * Math.log(Math.PI) - lgamma(d / 2 + 1) - d * Math.LN2);
@@ -1020,11 +1093,10 @@ function aCurve(kind) {
 }
 function drawA() {
   const k = aSel.get(), d = Math.round(aD.get()), eps = aEps.get(), cv = $("#aMain");
-  showCtl([aEps], k === "shell"); aView.el.hidden = k !== "vol" && k !== "shell"; gView.el.hidden = k !== "gauss"; showThm("#aThm", k); showSym("#aSym", k);
+  showCtl([aEps], k === "shell"); aView.el.hidden = k !== "vol" && k !== "shell"; gView.el.hidden = k !== "gauss"; oView.el.hidden = k !== "orth"; showCtl([aT], k === "orth"); showThm("#aThm", k); showSym("#aSym", k);
   const eq = $("#aEq"), cap = $("#aCap");
   if (k === "vol") {
-    const f = volFrac(d), N = 3000, pts = volPoints(d, N), pic = aView.get() === "pic" && d <= 3;
-    aView.el.querySelectorAll("button")[0].disabled = d > 3;
+    const f = volFrac(d), N = 3000, pts = volPoints(d, N), pic = pickView(aView, d, "hist") === "pic";
     const inside = pts.filter(q => q.r <= 1).length;
     if (pic && d === 1) {
       const P = plotFor(cv, { xmin: -1.3, xmax: 1.3, ymin: -0.75, ymax: 0.75 }); P.clear(); const g = P.ctx;
@@ -1046,14 +1118,13 @@ function drawA() {
     const desc = pic ? (d === 1 ? "W jednym wymiarze kula i sześcian to ten sam odcinek — wszystkie punkty są „w kuli”." : d === 2 ? "Niebieskie punkty leżą w kole, czerwone — w narożnikach kwadratu." : "Niebieskie punkty leżą w kuli, czerwone — w ośmiu narożnikach sześcianu. Przeciągnij, aby obrócić.")
       : `Histogram: odległości ${N} losowych punktów sześcianu od środka; niebieskie słupki — punkty w kuli (r ≤ 1), czerwone — poza nią.${d === 1 ? " Dla d = 1 odległość nigdy nie przekracza 1." : d === 2 ? " Dla d = 2 gęstość rośnie liniowo aż do r = 1 (obwód okręgu ∝ r), a potem maleje, bo okrąg wychodzi poza kwadrat." : d === 3 ? " Dla d = 3 gęstość rośnie jak r² (pole sfery) aż do r = 1, a potem maleje — ponad połowa masy jest jeszcze w kuli, ale już niewiele." : " Dla dużego d prawie wszystkie punkty są w odległości ≈ √(d/3) od środka — daleko poza kulą."}`;
     eq.innerHTML = `d = ${d}: kula zajmuje <span class="big">${f > 1e-3 ? fmt(100 * f, 2) + "%" : sci(f, 2)}</span> objętości sześcianu &nbsp;(w próbie: ${fmt(100 * inside / N, 1)}%)`
-      + `<span class="sub">V<sub>kula</sub> / V<sub>sześcian</sub> = π<sup>d/2</sup> / (Γ(d/2 + 1)·2<sup>d</sup>). ${desc}${d > 3 ? " Rysunek jest dostępny tylko dla d ≤ 3." : ""}</span>`;
+      + `<span class="sub">V<sub>kula</sub> / V<sub>sześcian</sub> = π<sup>d/2</sup> / (Γ(d/2 + 1)·2<sup>d</sup>). ${desc}</span>`;
     cap.textContent = "Udział objętości kuli w sześcianie w funkcji d (skala log na obu osiach):";
     const ds = intsLog(1, 1000, 60);
     lineChart($("#aCurve"), [{ x: ds, y: ds.map(volFrac), color: COL.pos }], { logx: true, logy: true, ymin: -12, ymax: 0, xlabel: "wymiar d", mark: { x: d, y: f } });
   }
   if (k === "shell") {
-    const f = 1 - Math.pow(1 - eps, d), N = 3000, pic = aView.get() === "pic" && d <= 3, pts = d <= 3 ? ballPoints(d, N) : null;
-    aView.el.querySelectorAll("button")[0].disabled = d > 3;
+    const f = 1 - Math.pow(1 - eps, d), N = 3000, pic = pickView(aView, d, "hist") === "pic", pts = d <= 3 ? ballPoints(d, N) : null;
     const inS = q => q.r >= 1 - eps, colS = q => (inS(q) ? COL.acc : "#9C98B0");
     if (pic && d === 1) {
       const P = plotFor(cv, { xmin: -1.3, xmax: 1.3, ymin: -0.75, ymax: 0.75 }); P.clear(); const g = P.ctx;
@@ -1078,14 +1149,14 @@ function drawA() {
     const desc = pic ? (d === 1 ? "Fioletowe punkty leżą w „skorupie” odcinka — w dwóch krańcowych kawałkach; ich udział to dokładnie ε." : d === 2 ? "Fioletowe punkty leżą w pierścieniu o grubości ε przy brzegu koła; szare — we wnętrzu." : "Fioletowe punkty leżą w skorupie kuli (między sferą przerywaną a ciągłą), szare — we wnętrzu. Przeciągnij, aby obrócić.")
       : "Histogram punktów losowanych równomiernie z kuli; czarna krzywa to gęstość promienia d·r<sup>d−1</sup>. W wielu wymiarach „środek” kuli jest praktycznie pusty.";
     eq.innerHTML = `d = ${d}: skorupa grubości ${fmt(eps)} zawiera <span class="big">${fmt(100 * f, 2)}%</span> objętości kuli` + (pts ? ` &nbsp;(w próbie: ${fmt(100 * share, 1)}%)` : "")
-      + `<span class="sub">Udział = 1 − (1 − ε)<sup>d</sup>. ${desc}${d > 3 ? " Rysunek jest dostępny tylko dla d ≤ 3." : ""}</span>`;
+      + `<span class="sub">Udział = 1 − (1 − ε)<sup>d</sup>. ${desc}</span>`;
     cap.textContent = `Udział skorupy grubości ε = ${fmt(eps)} w objętości kuli w funkcji d:`;
     const ds = intsLog(1, 1000, 80);
     lineChart($("#aCurve"), [{ x: ds, y: ds.map(dd => 1 - Math.pow(1 - eps, dd)), color: COL.acc }], { logx: true, ymin: 0, ymax: 1, xlabel: "wymiar d", mark: { x: d, y: f } });
   }
   if (k === "gauss") {
     const pts = gaussPoints(d, 2000), ns = pts.map(q => q.r), mn = Math.min(...ns), m = ns.reduce((a, b) => a + b, 0) / ns.length, sdv = Math.sqrt(ns.reduce((a, b) => a + (b - m) ** 2, 0) / ns.length);
-    let view = gView.get(); gView.el.querySelectorAll("button")[0].disabled = d > 3; if (view === "pic" && d > 3) view = "portrait";
+    const view = pickView(gView, d, "portrait");
     const hi = Math.sqrt(d) + 4.5, sq = Math.sqrt(d);
     const dens = (x, y) => Math.exp(-(x * x + y * y) / 2), densCol = v => { const t = Math.pow(v, 0.6); return [255 - Math.round(150 * t), 255 - Math.round(100 * t), 255 - Math.round(150 * t)]; };
     if (view === "pic" && d === 1) {
@@ -1121,14 +1192,65 @@ function drawA() {
     lineChart($("#aCurve"), [{ x: c.ds, y: c.y, color: COL.ok, label: "pomiar" }, { x: c.ds, y: c.ds.map(dd => 1 / Math.sqrt(2 * dd)), color: COL.muted, dash: [5, 4], label: "1/√(2d)" }], { logx: true, logy: true, xlabel: "wymiar d" });
   }
   if (k === "orth") {
-    const cs = []; for (let i = 0; i < 1500; i++) { const a = gaussVec(d), b = gaussVec(d); let s = 0; for (let j = 0; j < d; j++) s += a[j] * b[j]; cs.push(s / norm(a) / norm(b)); }
-    const sd = Math.sqrt(cs.reduce((p, c) => p + c * c, 0) / cs.length), small = cs.filter(c => Math.abs(c) < 0.1).length / cs.length;
-    histChart($("#aMain"), cs, { lo: -1, hi: 1, bins: 80, color: COL.acc, xlabel: "cos∠ między dwoma losowymi wektorami", tick: 0.25, vlines: [{ x: -1 / Math.sqrt(d), label: "−1/√d", align: "right" }, { x: 1 / Math.sqrt(d), label: "1/√d" }] });
-    eq.innerHTML = `d = ${d}: odchylenie cos∠ = <span class="big">${fmt(sd, 3)}</span>; |cos| &lt; 0,1 w ${fmt(100 * small, 1)}% par`
-      + `<span class="sub">Kąt między losowymi kierunkami skupia się wokół 90° z rozrzutem ≈ 1/√d. Dlatego w przestrzeni o d wymiarach mieści się wykładniczo wiele (w d) prawie prostopadłych kierunków — z tego korzystają zanurzenia słów i reprezentacje w sieciach.</span>`;
-    cap.textContent = "Odchylenie standardowe cos∠ w funkcji d (skala log):";
-    const c = aCurve("orth");
-    lineChart($("#aCurve"), [{ x: c.ds, y: c.y, color: COL.acc, label: "pomiar" }, { x: c.ds, y: c.ds.map(dd => 1 / Math.sqrt(dd)), color: COL.muted, dash: [5, 4], label: "1/√d" }], { logx: true, logy: true, xlabel: "wymiar d" });
+    const view = pickView(oView, d, "portrait"), t = aT.get(), share = bandShare(d, t), bound = Math.max(0, 1 - 2 * Math.exp(-d * t * t / 2));
+    const pts = view === "gram" ? null : dirPoints(d, 1500), measured = pts ? pts.filter(p => Math.abs(p.cos) < t).length / pts.length : NaN;
+    const tStr = fmt(t, 2), angLo = 90 - Math.acos(t) * 180 / Math.PI;
+    if (view === "pic" && d === 1) {
+      const P = plotFor(cv, { xmin: -1.6, xmax: 1.6, ymin: -0.8, ymax: 0.8 }); P.clear(); const g = P.ctx;
+      g.strokeStyle = COL.line; g.lineWidth = 2; g.beginPath(); g.moveTo(P.X(-1.4), P.Y(0)); g.lineTo(P.X(1.4), P.Y(0)); g.stroke();
+      for (const x of [-1, 1]) { g.fillStyle = "#9C98B0"; g.beginPath(); g.arc(P.X(x), P.Y(0), 9, 0, 2 * Math.PI); g.fill(); }
+      P.arrow(0, 0, 1, 0, COL.ink, 3); P.text("u", P.X(0.5), P.Y(0.12), { size: 15, weight: 700 });
+      P.text("d = 1: „sfera” to dwa punkty ±1 — każdy kierunek jest równoległy do u (cos = ±1), prostopadłych nie ma", P.W / 2, 24, { align: "center", size: 14, weight: 600 });
+    } else if (view === "pic" && d === 2) {
+      const P = plotFor(cv, { xmin: -1.4, xmax: 1.4, ymin: -1.4, ymax: 1.4 }); P.clear(); const g = P.ctx;
+      const a0 = Math.acos(t);   // granice pasa: kąty (arccos t, π − arccos t) i symetrycznie pod osią
+      g.strokeStyle = "rgba(124,58,237,0.25)"; g.lineWidth = 22;
+      for (const sgn of [1, -1]) { g.beginPath(); g.arc(P.X(0), P.Y(0), P.X(1) - P.X(0), sgn > 0 ? -(Math.PI - a0) : a0, sgn > 0 ? -a0 : Math.PI - a0); g.stroke(); }
+      g.strokeStyle = COL.line; g.lineWidth = 1.5; g.beginPath(); g.arc(P.X(0), P.Y(0), P.X(1) - P.X(0), 0, 2 * Math.PI); g.stroke();
+      pts.slice(0, 600).forEach(p => { g.fillStyle = Math.abs(p.cos) < t ? COL.acc : "#9C98B0"; g.beginPath(); g.arc(P.X(p.c[0]), P.Y(p.c[1]), 2.6, 0, 2 * Math.PI); g.fill(); });
+      P.arrow(0, 0, 1, 0, COL.ink, 3); P.text("u", P.X(1.05), P.Y(0.06), { size: 15, weight: 700 });
+      P.text(`pas |cos| < ${tStr}: kąty od ${fmt(90 - angLo, 1)}° do ${fmt(90 + angLo, 1)}°`, 10, 22, { size: 13, color: COL.acc, weight: 600 });
+    } else if (view === "pic" && d === 3) {
+      drawOrth3(cv, pts, t);
+    } else if (view === "portrait") {
+      const P = plotFor(cv, { xmin: -1.25, xmax: 1.25, ymin: -1.1, ymax: 1.1 }); P.clear(); const g = P.ctx;
+      const a0 = Math.acos(t);
+      g.fillStyle = "rgba(124,58,237,0.10)";
+      for (const sgn of [1, -1]) { g.beginPath(); g.moveTo(P.X(0), P.Y(0)); g.arc(P.X(0), P.Y(0), P.X(1.02) - P.X(0), sgn > 0 ? -(Math.PI - a0) : a0, sgn > 0 ? -a0 : Math.PI - a0); g.closePath(); g.fill(); }
+      pts.forEach(p => { const th = Math.acos(Math.max(-1, Math.min(1, p.cos))), x = p.rad * Math.cos(th), y = p.side * p.rad * Math.sin(th); g.fillStyle = Math.abs(p.cos) < t ? COL.acc : "#9C98B0"; g.globalAlpha = 0.6; g.fillRect(P.X(x) - 1.5, P.Y(y) - 1.5, 3, 3); });
+      g.globalAlpha = 1; P.arrow(0, 0, 1.15, 0, COL.ink, 3); P.text("u", P.X(1.18), P.Y(0.05), { size: 15, weight: 700 });
+      g.strokeStyle = COL.line; g.setLineDash([4, 4]); g.lineWidth = 1; g.beginPath(); g.moveTo(P.X(0), P.Y(-1.05)); g.lineTo(P.X(0), P.Y(1.05)); g.stroke(); g.setLineDash([]);
+      P.text("90°", P.X(0) + 4, P.Y(1.02), { size: 12, color: COL.muted });
+      P.text("kąt do u jest prawdziwy; odległość od środka i strona (góra/dół) — umowne", 10, P.H - 10, { size: 12, color: COL.muted });
+    } else if (view === "hist") {
+      const cs = pts.map(p => p.cos);
+      histChart($("#aMain"), cs, { lo: -1, hi: 1, bins: 80, colorFn: v => (Math.abs(v) < t ? COL.acc : "#9C98B0"), xlabel: "cos∠(u, v) dla losowych kierunków v", tick: 0.25, vlines: d > 1 ? [{ x: -1 / Math.sqrt(d), label: "−1/√d", align: "right" }, { x: 1 / Math.sqrt(d), label: "1/√d" }] : [] });
+    } else {
+      const N = 150, Gm = gramMatrix(d, N), { g, W, H } = setupCanvas($("#aMain")), size = Math.min(W - 140, H - 20), x0 = (W - size) / 2 - 40, y0 = 10, c = size / N;
+      for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) { const col = tint(Gm.G[i][j] * 2.2, 1); g.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`; g.fillRect(x0 + j * c, y0 + i * c, c + 0.5, c + 0.5); }
+      g.strokeStyle = COL.line; g.strokeRect(x0, y0, size, size);
+      for (let i = 0; i < 100; i++) { const col = tint((1 - 2 * i / 99) * 2.2, 1); g.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`; g.fillRect(x0 + size + 24, y0 + size * i / 100, 14, size / 100 + 1); }
+      g.fillStyle = COL.ink; g.font = "12px system-ui"; g.textAlign = "left"; g.fillText("cos = 1", x0 + size + 42, y0 + 10); g.fillText("0", x0 + size + 42, y0 + size / 2 + 4); g.fillText("−1", x0 + size + 42, y0 + size);
+      g.fillStyle = COL.muted; g.fillText(`${N} losowych kierunków w ℝ^${d}: komórka (i, j) = cos∠(vᵢ, vⱼ)`, x0, H - 4 > y0 + size + 14 ? y0 + size + 14 : H - 4);
+    }
+    const eqTxt = view === "gram"
+      ? (() => { const Gm = gramMatrix(d, 150); return `d = ${d}, 150 wektorów: największe |cos| = <span class="big">${fmt(Gm.max, 3)}</span>, średnie |cos| = ${fmt(Gm.mean, 3)}`
+          + `<span class="sub">Dokładnie prostopadłych kierunków jest tylko d${150 > d ? ` — tu wektorów jest więcej (150 &gt; ${d}), a mimo to` : ","} przy dużym d wszystkie pary są prawie prostopadłe. Przy d = 1000 można zmieścić dziesiątki tysięcy kierunków o |cos| &lt; 0,2 — na tym opierają się zanurzenia słów i „superpozycja” cech w sieciach.</span>`; })()
+      : d === 1 ? `d = 1: kierunki prawie prostopadłe nie istnieją<span class="sub">W jednym wymiarze są tylko dwa kierunki: u i −u.</span>`
+      : `d = ${d}: |cos∠(u, v)| &lt; ${tStr} dla <span class="big">${fmt(100 * share, 1)}%</span> kierunków &nbsp;(w próbie: ${fmt(100 * measured, 1)}%)`
+        + `<span class="sub">${d === 2 ? `Dokładnie: 1 − 2·arccos(t)/π. Kierunki są rozłożone równomiernie po okręgu, a pas prawie prostopadłych to tylko dwa wąskie łuki.` : d === 3 ? `Dokładnie t: w 3D cosinus losowego kierunku ma rozkład jednostajny na [−1, 1] (Archimedes — pole strefy sferycznej zależy tylko od jej wysokości). Pas wokół równika o „wysokości” 2t zajmuje ułamek t sfery.` : `Udział liczony z gęstości cos ∝ (1 − x²)<sup>(d−3)/2</sup>; ograniczenie z twierdzenia: co najmniej 1 − 2e<sup>−dt²/2</sup> = ${fmt(100 * bound, 1)}%. Przy dużym d prawie cała sfera leży w pasie wokół „równika” prostopadłego do u.`}</span>`;
+    eq.innerHTML = eqTxt;
+    if (view === "gram") {
+      computeGramCurves();
+      cap.textContent = "Największe |cos| wśród N losowych kierunków w funkcji N (dla d = 10, 100, 1000):";
+      if (gramCurves) { const cols = [COL.ok, COL.pos, COL.acc];
+        lineChart($("#aCurve"), gramCurves.dims.map((dd, i) => ({ x: gramCurves.Ns, y: gramCurves.out[dd], color: cols[i], label: `d = ${dd}` })), { logx: true, ymin: 0, ymax: 1, xlabel: "liczba wektorów N", vlines: gramCurves.dims.map((dd, i) => ({ x: dd, color: cols[i] })) });
+      } else { const { g, W, H } = setupCanvas($("#aCurve")); g.fillStyle = COL.muted; g.font = "13px system-ui"; g.fillText("Liczę… (ok. 2–4 s)", 60, H / 2); }
+    } else {
+      cap.textContent = `Udział kierunków prawie prostopadłych (|cos| < ${tStr}) w funkcji d — dokładnie (fioletowa) i dolne ograniczenie 1 − 2e^(−dt²/2) (szara):`;
+      const ds = intsLog(2, 1000, 50);
+      lineChart($("#aCurve"), [{ x: ds, y: ds.map(dd => bandShare(dd, t)), color: COL.acc, label: "dokładnie" }, { x: ds, y: ds.map(dd => Math.max(0, 1 - 2 * Math.exp(-dd * t * t / 2))), color: COL.muted, dash: [5, 4], label: "ograniczenie" }], { logx: true, ymin: 0, ymax: 1, xlabel: "wymiar d", mark: d > 1 ? { x: d, y: share } : null });
+    }
   }
   if (k === "dist") {
     const q = Array.from({ length: d }, () => R.u()), ds = [];

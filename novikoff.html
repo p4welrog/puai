@@ -85,6 +85,11 @@ details.sym dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px
 details.sym dt { font-weight: 600; white-space: nowrap; } details.sym dd { margin: 0; color: var(--ink); }
 details.sym p { margin: 8px 0 0; color: var(--muted); }
 @media (max-width: 560px) { details.sym dl { grid-template-columns: 1fr; } details.sym dd { margin-bottom: 6px; } }
+
+/* opcje i przyciski chwilowo niedostępne */
+.seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
+.seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
+button.btn:disabled { cursor: not-allowed; }
 </style>
 <style>
 canvas.proof { display: block; width: 100%; height: 190px; }
@@ -191,9 +196,11 @@ function seg(root, options, value, on, label) {
   const btns = options.map(([v, t]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.dataset.v = v; wrap.appendChild(b); return b; });
   let cur = value;
   const sync = () => btns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === String(cur))));
-  btns.forEach(b => b.addEventListener("click", () => { cur = b.dataset.v; sync(); on && on(cur); }));
+  btns.forEach(b => b.addEventListener("click", () => { if (b.disabled) return; cur = b.dataset.v; sync(); on && on(cur, true); }));
   sync(); root.appendChild(wrap);
-  return { get: () => cur, set: v => { cur = String(v); sync(); } };
+  // disable(v, flag, title): wyszarza opcję v (z podpowiedzią title, gdy jest wyłączona)
+  const disable = (v, flag, title = "") => { const b = btns.find(x => x.dataset.v === String(v)); if (!b) return; b.disabled = !!flag; b.title = flag ? title : ""; };
+  return { get: () => cur, set: v => { cur = String(v); sync(); }, disable, el: wrap };
 }
 function check(root, label, value, on) {
   const l = document.createElement("label"); l.className = "check";
@@ -809,7 +816,7 @@ const speed = slider(Lr, { label: "tempo (aktualizacji na sekundę)", min: 1, ma
 const hide = check(Lr, "ukryj u i γ (nie wiemy, czy dane są rozdzielne)", false, () => draw());
 const B = $("#btns");
 const bRun = button(B, "Start", () => (S.timer ? stop() : run()), true);
-button(B, "1 aktualizacja", () => { stepUpdate(); draw(); });
+const bStep = button(B, "1 aktualizacja", () => { stepUpdate(); draw(); });
 button(B, "Od nowa", () => { stop(); reset(); });
 let rnd = ML.rng(99);
 
@@ -877,6 +884,7 @@ function draw() {
   if (!$("#pane2d").hidden) draw2d(hid);
   if (!$("#pane3d").hidden) draw3d(hid);
   drawProof(hid); stats(hid);
+  bStep.disabled = S.done || !pts.length; bStep.title = S.done ? "Perceptron już się zatrzymał — kliknij „Od nowa”" : "";
 }
 function draw2d(hid) {
   P.clear();

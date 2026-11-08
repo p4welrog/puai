@@ -85,6 +85,11 @@ details.sym dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px
 details.sym dt { font-weight: 600; white-space: nowrap; } details.sym dd { margin: 0; color: var(--ink); }
 details.sym p { margin: 8px 0 0; color: var(--muted); }
 @media (max-width: 560px) { details.sym dl { grid-template-columns: 1fr; } details.sym dd { margin-bottom: 6px; } }
+
+/* opcje i przyciski chwilowo niedostępne */
+.seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
+.seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
+button.btn:disabled { cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -159,9 +164,11 @@ function seg(root, options, value, on, label) {
   const btns = options.map(([v, t]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.dataset.v = v; wrap.appendChild(b); return b; });
   let cur = value;
   const sync = () => btns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === String(cur))));
-  btns.forEach(b => b.addEventListener("click", () => { cur = b.dataset.v; sync(); on && on(cur); }));
+  btns.forEach(b => b.addEventListener("click", () => { if (b.disabled) return; cur = b.dataset.v; sync(); on && on(cur, true); }));
   sync(); root.appendChild(wrap);
-  return { get: () => cur, set: v => { cur = String(v); sync(); } };
+  // disable(v, flag, title): wyszarza opcję v (z podpowiedzią title, gdy jest wyłączona)
+  const disable = (v, flag, title = "") => { const b = btns.find(x => x.dataset.v === String(v)); if (!b) return; b.disabled = !!flag; b.title = flag ? title : ""; };
+  return { get: () => cur, set: v => { cur = String(v); sync(); }, disable, el: wrap };
 }
 function check(root, label, value, on) {
   const l = document.createElement("label"); l.className = "check";
@@ -727,8 +734,8 @@ const shuffle = check(TR, "tasuj próbki przed każdą epoką", false);
 const speed = slider(TR, { label: "szybkość (kroki na sekundę)", min: 1, max: 60, step: 1, value: 12, digits: 0, on: () => { if (T.timer) { stop(); run(); } } });
 const B = $("#btns");
 const bRun = button(B, "Ucz", () => (T.timer ? stop() : run()), true);
-button(B, "Jeden krok", () => { stop(); step(); draw(); });
-button(B, "Cała epoka", () => { stop(); const e = T.epoch; let guard = 0; while (T.epoch === e && !T.done && guard++ < 1e4) step(); draw(); });
+const bStep = button(B, "Jeden krok", () => { stop(); step(); draw(); });
+const bEpoch = button(B, "Cała epoka", () => { stop(); const e = T.epoch; let guard = 0; while (T.epoch === e && !T.done && guard++ < 1e4) step(); draw(); });
 button(B, "Od nowa", () => { stop(); resetTraining(); });
 
 function newOrder() { T.order = pts.map((_, i) => i); if (shuffle.get()) { const R = ML.rng(seed * 31 + T.epoch); for (let i = T.order.length - 1; i > 0; i--) { const j = Math.floor(R.u() * (i + 1)); [T.order[i], T.order[j]] = [T.order[j], T.order[i]]; } } }
@@ -783,6 +790,8 @@ function draw() {
     s += `<span class="sub">Ostatni krok: x = (${fmt(p.x)}; ${fmt(p.y)}), z = ${fmt(L.z)} → ŷ = ${L.yhat > 0 ? "+1" : "−1"}, prawdziwe y = ${L.y > 0 ? "+1" : "−1"}. `
        + (L.dw[0] === 0 ? "Trafienie — wagi bez zmian." : `Pomyłka — Δw = η(y − ŷ)·[1, x<sub>1</sub>, x<sub>2</sub>] = (${fmt(L.dw[0])}; ${fmt(L.dw[1])}; ${fmt(L.dw[2])}).`) + "</span>"; }
   $("#eq").innerHTML = s;
+  // po zbieżności (albo bez danych) krok i epoka nic nie robią — wyszarz je
+  for (const b of [bStep, bEpoch]) { b.disabled = !!T.done || !pts.length; b.title = T.done ? "Uczenie zakończone — kliknij „Od nowa”" : !pts.length ? "Najpierw dodaj punkty" : ""; }
   $("#sEpoch").textContent = T.epoch; $("#sErr").textContent = T.errs; $("#sUpd").textContent = T.upd;
   miniChart($("#chart"), [{ values: T.hist.length ? T.hist : [0], color: COL.acc }], { bars: true, xlabel: "epoka" });
 }
