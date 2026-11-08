@@ -119,7 +119,7 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
     <div class="panel"><h3>Parametry</h3><div id="aPar"></div></div>
   </aside>
   <section class="tryit panel"><h2>Spróbuj</h2><ul>
-    <li><b>Objętość:</b> przy d = 2 kula zajmuje 79% kwadratu, przy d = 10 — 0,25%, przy d = 20 — 2,5·10⁻⁸. Losowe punkty z sześcianu prawie zawsze leżą „w narożnikach”, daleko od środka.</li>
+    <li><b>Objętość:</b> porównaj rysunki dla d = 1, 2, 3 z histogramami dla tych samych d — histogram to jedyny „rysunek”, jaki zostaje dla d &gt; 3. Przy d = 2 kula zajmuje 79% kwadratu, przy d = 3 — 52%, przy d = 10 — 0,25%, przy d = 20 — 2,5·10⁻⁸. Losowe punkty z sześcianu prawie zawsze leżą „w narożnikach”, daleko od środka.</li>
     <li><b>Skorupa:</b> ustaw ε = 0,05 i zwiększaj d. Przy d = 100 ponad 99% objętości kuli leży w cienkiej skorupie przy brzegu.</li>
     <li><b>Bańka gaussowska:</b> gęstość N(0, I) jest największa w zerze, a jednak przy d = 100 żadna z 2000 próbek nie leży bliżej niż ok. 8 od środka — wszystkie mają normę ≈ √d. Typowy punkt to nie punkt najbardziej prawdopodobny.</li>
     <li><b>Ortogonalność:</b> przy d = 1000 cosinus kąta między dwoma losowymi wektorami prawie nigdy nie przekracza 0,1 — losowe kierunki są prawie prostopadłe, więc przestrzeń mieści ogromnie wiele „prawie niezależnych” kierunków.</li>
@@ -935,9 +935,42 @@ function showThm(id, key) {
 const aSel = seg($("#aSel"), [["vol", "objętość kuli w sześcianie"], ["shell", "masa w skorupie"], ["gauss", "bańka gaussowska"], ["orth", "prawie ortogonalne wektory"], ["dist", "koncentracja odległości"]], "vol", () => drawA());
 const aP = $("#aPar");
 const aD = slider2(aP, { label: "wymiar d", min: 1, max: 1000, log: true, value: 2, digits: 0, on: debounce(() => drawA(), 30) });
+const aQuick = document.createElement("div"); aQuick.className = "row"; aQuick.style.marginBottom = "8px"; aP.appendChild(aQuick);
+for (const v of [1, 2, 3, 10, 100, 1000]) button(aQuick, "d = " + v, () => { aD.set(v); drawA(); });
 const aEps = slider2(aP, { label: "grubość skorupy ε", min: 0.01, max: 0.5, step: 0.01, value: 0.05, on: debounce(() => drawA(), 30) });
+const aView = seg(aP, [["pic", "rysunek (d ≤ 3)"], ["hist", "histogram odległości"]], "pic", () => drawA(), "Widok"); aView.el = aP.lastElementChild;
 const aRow = document.createElement("div"); aRow.className = "row"; aP.appendChild(aRow);
-button(aRow, "Losuj ponownie", () => { R = ML.rng(Math.floor(Math.random() * 1e9)); drawA(); });
+button(aRow, "Losuj ponownie", () => { R = ML.rng(Math.floor(Math.random() * 1e9)); volCache = null; drawA(); });
+// punkty z sześcianu [−1, 1]^d zapamiętane, żeby obrót i przełączanie widoku nie losowały ich od nowa
+let volCache = null;
+function volPoints(d, N) {
+  if (volCache && volCache.d === d) return volCache.pts;
+  const pts = []; for (let i = 0; i < N; i++) { const c = new Float64Array(d); let s2 = 0; for (let j = 0; j < d; j++) { c[j] = 2 * R.u() - 1; s2 += c[j] * c[j]; } pts.push({ c, r: Math.sqrt(s2), j: 0.3 * (2 * R.u() - 1) }); }
+  volCache = { d, pts }; return pts;
+}
+// rysunek 3D: sześcian, kula, punkty; obrót myszą
+const V3 = { yaw: -0.6, pitch: 0.35 };
+function drawVol3(cv, pts) {
+  const { g, W, H } = setupCanvas(cv), s = Math.min(W, H) * 0.3, ca = Math.cos(V3.yaw), sa = Math.sin(V3.yaw), cb = Math.cos(V3.pitch), sb = Math.sin(V3.pitch);
+  const pr = ([x, y, z]) => { const x1 = x * ca - y * sa, y1 = x * sa + y * ca, d = y1 * cb - z * sb, up = y1 * sb + z * cb; return [W / 2 + s * x1, H / 2 - s * up, d]; };
+  const seg3 = (a, b, col, w = 1) => { const A = pr(a), B = pr(b); g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(B[0], B[1]); g.stroke(); };
+  const circ = (f, col) => { g.strokeStyle = col; g.lineWidth = 1.2; g.beginPath(); for (let i = 0; i <= 96; i++) { const t = 2 * Math.PI * i / 96, q = pr(f(Math.cos(t), Math.sin(t))); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); } g.stroke(); };
+  // tylne krawędzie sześcianu, punkty od najdalszych, przednie krawędzie
+  const V = [-1, 1], E = [];
+  for (const a of V) for (const b of V) { E.push([[-1, a, b], [1, a, b]], [[a, -1, b], [a, 1, b]], [[a, b, -1], [a, b, 1]]); }
+  const depthE = e => (pr(e[0])[2] + pr(e[1])[2]) / 2;
+  E.filter(e => depthE(e) > 0).forEach(e => seg3(e[0], e[1], "#C9C5D8", 1));
+  const items = pts.map(q => ({ q, p: pr(q.c) })).sort((a, b) => b.p[2] - a.p[2]);
+  for (const it of items) { g.fillStyle = it.q.r <= 1 ? COL.pos : COL.neg; g.globalAlpha = 0.25 + 0.5 * (1 - (it.p[2] + 1.8) / 3.6); g.fillRect(it.p[0] - 1.6, it.p[1] - 1.6, 3.2, 3.2); }
+  g.globalAlpha = 1;
+  circ((c, t) => [c, t, 0], "rgba(37,99,235,0.7)"); circ((c, t) => [c, 0, t], "rgba(37,99,235,0.5)"); circ((c, t) => [0, c, t], "rgba(37,99,235,0.5)");
+  E.filter(e => depthE(e) <= 0).forEach(e => seg3(e[0], e[1], COL.ink, 1.6));
+  g.fillStyle = COL.muted; g.font = "12px system-ui"; g.fillText("przeciągnij, aby obrócić", 10, H - 10);
+}
+{ const cv = $("#aMain"); let drag = null;
+  cv.addEventListener("pointerdown", e => { if (!(aSel.get() === "vol" && aView.get() === "pic" && Math.round(aD.get()) === 3)) return; drag = [e.clientX, e.clientY]; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointermove", e => { if (!drag) return; V3.yaw += (e.clientX - drag[0]) * 0.01; V3.pitch = Math.max(-1.4, Math.min(1.4, V3.pitch + (e.clientY - drag[1]) * 0.01)); drag = [e.clientX, e.clientY]; drawVol3(cv, volPoints(3, 3000)); });
+  cv.addEventListener("pointerup", () => (drag = null)); }
 const aCurves = {};
 const volFrac = d => Math.exp((d / 2) * Math.log(Math.PI) - lgamma(d / 2 + 1) - d * Math.LN2);
 function gaussVec(d) { const v = new Float64Array(d); for (let i = 0; i < d; i++) v[i] = R.n(); return v; }
@@ -954,20 +987,33 @@ function aCurve(kind) {
 }
 function drawA() {
   const k = aSel.get(), d = Math.round(aD.get()), eps = aEps.get(), cv = $("#aMain");
-  showCtl([aEps], k === "shell"); showThm("#aThm", k); showSym("#aSym", k);
+  showCtl([aEps], k === "shell"); aView.el.hidden = k !== "vol"; showThm("#aThm", k); showSym("#aSym", k);
   const eq = $("#aEq"), cap = $("#aCap");
   if (k === "vol") {
-    const f = volFrac(d), N = 3000;
-    if (d === 2) {
-      const P = plotFor(cv, { xmin: -1.2, xmax: 1.2, ymin: -1.2, ymax: 1.2 }); P.clear(); const g = P.ctx; let inside = 0;
-      for (let i = 0; i < N; i++) { const x = 2 * R.u() - 1, y = 2 * R.u() - 1, inn = x * x + y * y <= 1; inside += inn; g.fillStyle = inn ? COL.pos : COL.neg; g.globalAlpha = 0.6; g.fillRect(P.X(x) - 1.5, P.Y(y) - 1.5, 3, 3); }
+    const f = volFrac(d), N = 3000, pts = volPoints(d, N), pic = aView.get() === "pic" && d <= 3;
+    aView.el.querySelectorAll("button")[0].disabled = d > 3;
+    const inside = pts.filter(q => q.r <= 1).length;
+    if (pic && d === 1) {
+      const P = plotFor(cv, { xmin: -1.3, xmax: 1.3, ymin: -0.75, ymax: 0.75 }); P.clear(); const g = P.ctx;
+      g.fillStyle = "rgba(37,99,235,0.08)"; g.fillRect(P.X(-1), P.Y(0.35), P.X(1) - P.X(-1), P.Y(-0.35) - P.Y(0.35));
+      pts.forEach(q => { g.fillStyle = COL.pos; g.globalAlpha = 0.55; g.fillRect(P.X(q.c[0]) - 1.5, P.Y(q.j) - 1.5, 3, 3); }); g.globalAlpha = 1;
+      g.strokeStyle = COL.ink; g.lineWidth = 3; g.beginPath(); g.moveTo(P.X(-1), P.Y(0)); g.lineTo(P.X(1), P.Y(0)); g.stroke();
+      for (const x of [-1, 1]) { g.beginPath(); g.moveTo(P.X(x), P.Y(-0.12)); g.lineTo(P.X(x), P.Y(0.12)); g.stroke(); }
+      P.text("„sześcian” [−1, 1] = „kula” o promieniu 1 — to ten sam odcinek", P.W / 2, P.Y(0.5), { align: "center", size: 14, weight: 600 });
+      P.text("punkty rozsunięte w pionie tylko dla czytelności", P.W / 2, P.Y(-0.55), { align: "center", size: 12, color: COL.muted });
+    } else if (pic && d === 2) {
+      const P = plotFor(cv, { xmin: -1.2, xmax: 1.2, ymin: -1.2, ymax: 1.2 }); P.clear(); const g = P.ctx;
+      pts.forEach(q => { g.fillStyle = q.r <= 1 ? COL.pos : COL.neg; g.globalAlpha = 0.6; g.fillRect(P.X(q.c[0]) - 1.5, P.Y(q.c[1]) - 1.5, 3, 3); });
       g.globalAlpha = 1; g.strokeStyle = COL.ink; g.lineWidth = 2; g.strokeRect(P.X(-1), P.Y(1), P.X(1) - P.X(-1), P.Y(-1) - P.Y(1)); g.beginPath(); g.arc(P.X(0), P.Y(0), P.X(1) - P.X(0), 0, 7); g.stroke();
+    } else if (pic && d === 3) {
+      drawVol3(cv, pts);
     } else {
-      const ns = []; let inside = 0; for (let i = 0; i < N; i++) { let s = 0; for (let j = 0; j < d; j++) { const t = 2 * R.u() - 1; s += t * t; } s = Math.sqrt(s); ns.push(s); inside += s <= 1; }
-      histChart(cv, ns, { lo: 0, hi: Math.sqrt(d) * 1.02 + 0.1, bins: 70, colorFn: v => (v <= 1 ? COL.pos : COL.neg), xlabel: "odległość losowego punktu sześcianu [−1, 1]^d od środka", vlines: [{ x: 1, label: "brzeg kuli (r = 1)", color: COL.pos }, { x: Math.sqrt(d), label: "narożnik √d", color: COL.ink, align: "right" }] });
+      histChart(cv, pts.map(q => q.r), { lo: 0, hi: Math.sqrt(d) * 1.02 + 0.1, bins: d <= 3 ? 40 : 70, colorFn: v => (v <= 1 ? COL.pos : COL.neg), tick: d <= 3 ? 0.25 : undefined, xlabel: "odległość losowego punktu sześcianu [−1, 1]^d od środka", vlines: d === 1 ? [{ x: 1, label: "koniec odcinka = brzeg „kuli” = „narożnik”", color: COL.ink, align: "right" }] : [{ x: 1, label: "brzeg kuli (r = 1)", color: COL.pos }, { x: Math.sqrt(d), label: "narożnik √d", color: COL.ink, align: "right" }] });
     }
-    eq.innerHTML = `d = ${d}: kula zajmuje <span class="big">${f > 1e-3 ? fmt(100 * f, 2) + "%" : sci(f, 2)}</span> objętości sześcianu`
-      + `<span class="sub">V<sub>kula</sub> / V<sub>sześcian</sub> = π<sup>d/2</sup> / (Γ(d/2 + 1)·2<sup>d</sup>). ${d === 2 ? "Niebieskie punkty leżą w kole, czerwone — w narożnikach kwadratu." : "Histogram: odległości 3000 losowych punktów sześcianu od środka; niebieskie słupki — w kuli (najczęściej nie ma ich wcale)."}</span>`;
+    const desc = pic ? (d === 1 ? "W jednym wymiarze kula i sześcian to ten sam odcinek — wszystkie punkty są „w kuli”." : d === 2 ? "Niebieskie punkty leżą w kole, czerwone — w narożnikach kwadratu." : "Niebieskie punkty leżą w kuli, czerwone — w ośmiu narożnikach sześcianu. Przeciągnij, aby obrócić.")
+      : `Histogram: odległości ${N} losowych punktów sześcianu od środka; niebieskie słupki — punkty w kuli (r ≤ 1), czerwone — poza nią.${d === 1 ? " Dla d = 1 odległość nigdy nie przekracza 1." : d === 2 ? " Dla d = 2 gęstość rośnie liniowo aż do r = 1 (obwód okręgu ∝ r), a potem maleje, bo okrąg wychodzi poza kwadrat." : d === 3 ? " Dla d = 3 gęstość rośnie jak r² (pole sfery) aż do r = 1, a potem maleje — ponad połowa masy jest jeszcze w kuli, ale już niewiele." : " Dla dużego d prawie wszystkie punkty są w odległości ≈ √(d/3) od środka — daleko poza kulą."}`;
+    eq.innerHTML = `d = ${d}: kula zajmuje <span class="big">${f > 1e-3 ? fmt(100 * f, 2) + "%" : sci(f, 2)}</span> objętości sześcianu &nbsp;(w próbie: ${fmt(100 * inside / N, 1)}%)`
+      + `<span class="sub">V<sub>kula</sub> / V<sub>sześcian</sub> = π<sup>d/2</sup> / (Γ(d/2 + 1)·2<sup>d</sup>). ${desc}${d > 3 ? " Rysunek jest dostępny tylko dla d ≤ 3." : ""}</span>`;
     cap.textContent = "Udział objętości kuli w sześcianie w funkcji d (skala log na obu osiach):";
     const ds = intsLog(1, 1000, 60);
     lineChart($("#aCurve"), [{ x: ds, y: ds.map(volFrac), color: COL.pos }], { logx: true, logy: true, ymin: -12, ymax: 0, xlabel: "wymiar d", mark: { x: d, y: f } });
