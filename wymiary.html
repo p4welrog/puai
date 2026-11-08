@@ -128,7 +128,7 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
     <li><b>Skorupa:</b> ustaw ε = 0,05 i obejrzyj rysunki dla d = 1, 2, 3 (5%, 9,75%, 14,3% punktów w skorupie), potem zwiększaj d. Przy d = 100 ponad 99% objętości kuli leży w cienkiej skorupie przy brzegu.</li>
     <li><b>Bańka gaussowska:</b> zacznij od rysunków dla d = 1, 2, 3, potem przejdź do portretu promieniowego i zwiększaj d — chmura zamienia się w pierścień. Gęstość N(0, I) jest największa w zerze, a jednak przy d = 100 żadna z 2000 próbek nie leży bliżej niż ok. 8 od środka — wszystkie mają normę ≈ √d. Typowy punkt to nie punkt najbardziej prawdopodobny.</li>
     <li><b>Ortogonalność:</b> przejdź przez d = 1, 2, 3 (rysunek), potem portret kątowy dla dużego d — losowe kierunki zbiegają się do 90°. W widoku „wiele wektorów” mapa cosinusów 150 kierunków z pstrokatej staje się jednolicie szara. Przy d = 1000 cosinus kąta między dwoma losowymi wektorami prawie nigdy nie przekracza 0,1 — losowe kierunki są prawie prostopadłe, więc przestrzeń mieści ogromnie wiele „prawie niezależnych” kierunków.</li>
-    <li><b>Odległości:</b> w rysunku 2D pierścień między najbliższym a najdalszym punktem jest szeroki; w portrecie przy dużym d oba okręgi prawie się stykają, a w pasie „prawie najbliższych” są setki punktów. Przełącz dane na „płaszczyznę 2D” albo „skupiska” — kontrast nie znika, bo założenie twierdzenia nie jest spełnione. Najbliższy i najdalszy punkt są w danych równomiernych coraz bardziej podobnie odlegli (to samo zjawisko co w k-NN).</li>
+    <li><b>Odległości:</b> wszystkie odległości mierzymy w „razach odległości do najbliższego punktu”. Przy d = 2 najdalszy punkt jest dziesiątki razy dalej niż najbliższy, a w pasie do 1,1× leży zwykle 1 punkt. Przy d = 1000 (dane równomierne) najdalszy jest tylko ok. 1,1× dalej i w pasie leży prawie wszystko. Przesuwaj ε i patrz na liczbę punktów w pasie. Potem przełącz dane na „płaszczyznę 2D” albo „skupiska” — tam efekt nie występuje, bo założenie twierdzenia nie jest spełnione.</li>
   </ul></section>
 </main>
 
@@ -916,7 +916,7 @@ const SYM = {
   shell: [["ε", "grubość skorupy jako ułamek promienia (nie średnicy): przy ε = 0,05 skorupa zajmuje zewnętrzne 5% promienia, czyli 2,5% średnicy z każdej strony"], ["r", "odległość punktu od środka kuli jednostkowej"], ["d·r<sup>d−1</sup>", "gęstość promienia punktu losowanego równomiernie z kuli — rośnie bardzo szybko przy r → 1"]],
   gauss: [["N(0, I<sub>d</sub>)", "wielowymiarowy rozkład normalny: d niezależnych współrzędnych o średniej 0 i wariancji 1"], ["‖x‖", "norma (długość) wektora — odległość próbki od zera"], ["E, Var", "wartość oczekiwana i wariancja"], ["t", "dopuszczalne odchylenie normy od jej średniej"]],
   orth: [["u, v", "losowe wektory jednostkowe (kierunki); u jest ustalony (strzałka), v losujemy"], ["t", "próg: pary z |cos| < t uznajemy za „prawie prostopadłe” (suwak)"], ["pas wokół równika", "zbiór kierunków v z |cos∠(u, v)| < t — dla d = 3 strefa między dwoma przerywanymi okręgami"], ["⟨u, v⟩ = cos∠", "iloczyn skalarny, dla wektorów jednostkowych równy cosinusowi kąta między nimi; 0 oznacza prostopadłość"], ["1/√d", "typowa wielkość cosinusa (odchylenie standardowe)"]],
-  dist: [["Q", "punkt zapytania (czerwona kropka)"], ["ε", "margines: punkty z odległością ≤ (1 + ε)·d<sub>min</sub> uznajemy za „prawie najbliższe” (suwak)"], ["niestabilne zapytanie", "takie, w którym wiele punktów jest prawie tak blisko jak najbliższy — wtedy drobny szum zmienia wynik k-NN"], ["D<sub>i</sub> = ‖X<sub>i</sub> − Q‖", "odległość i-tego punktu od zapytania"], ["d<sub>min</sub>, d<sub>max</sub>", "odległość najbliższego i najdalszego punktu"], ["(d<sub>max</sub> − d<sub>min</sub>)/d<sub>min</sub>", "kontrast odległości — dąży do 0"]],
+  dist: [["Q", "punkt zapytania"], ["D / d<sub>min</sub>", "odległość punktu od zapytania podzielona przez odległość najbliższego — „ile razy dalej niż najbliższy”"], ["D<sub>k</sub>", "odległość k-tego najbliższego punktu (profil sąsiadów)"], ["ε", "margines: punkty z odległością ≤ (1 + ε)·d<sub>min</sub> uznajemy za „prawie najbliższe” (suwak)"], ["niestabilne zapytanie", "takie, w którym wiele punktów jest prawie tak blisko jak najbliższy — wtedy drobny szum zmienia wynik k-NN"], ["D<sub>i</sub> = ‖X<sub>i</sub> − Q‖", "odległość i-tego punktu od zapytania"], ["d<sub>min</sub>, d<sub>max</sub>", "odległość najbliższego i najdalszego punktu"], ["(d<sub>max</sub> − d<sub>min</sub>)/d<sub>min</sub>", "kontrast odległości — dąży do 0"]],
   edge: [["r", "ułamek danych, który ma się znaleźć w sąsiedztwie (suwak)"], ["r<sup>1/d</sup>", "krawędź podsześcianu o objętości r — czyli jaką część zakresu każdej cechy musi objąć sąsiedztwo"], ["10<sup>d</sup>", "liczba próbek potrzebna, żeby na każdą oś przypadało 10 różnych wartości"]],
   proj: [["{−1, 1}<sup>d</sup>", "wierzchołki sześcianu: wszystkie wektory o współrzędnych ±1 (2<sup>d</sup> punktów)"], ["θ", "losowy kierunek jednostkowy; rzut punktu x to liczba θ·x"], ["rzut na płaszczyznę", "dwa prostopadłe losowe kierunki θ₁, θ₂ dają współrzędne (θ₁·x, θ₂·x)"], ["N(0, σ²)", "rozkład normalny — czarna krzywa na dolnym wykresie"]],
   jl: [["D", "wymiar oryginalny danych"], ["k", "wymiar po rzucie (suwak)"], ["f(x) = Mx", "rzut liniowy: macierz M o k wierszach i D kolumnach, elementy losowe N(0, 1/k)"], ["‖f(u) − f(v)‖ / ‖u − v‖", "stosunek odległości po rzucie i przed — idealnie 1"], ["ε", "dopuszczalne względne zniekształcenie (kwadratów) odległości"], ["n", "liczba punktów (tu 50, czyli 1225 par)"]],
@@ -948,7 +948,7 @@ const aEps = slider2(aP, { label: "grubość skorupy ε (ułamek promienia)", mi
 const aView = seg(aP, [["pic", "rysunek (d ≤ 3)"], ["hist", "histogram odległości"]], "pic", (v, user) => { if (user) aView._auto = false; drawA(); }, "Widok");
 const gView = seg(aP, [["pic", "rysunek (d ≤ 3)"], ["portrait", "portret promieniowy"], ["hist", "histogram normy"]], "portrait", (v, user) => { if (user) gView._auto = false; drawA(); }, "Widok");
 const oView = seg(aP, [["pic", "rysunek (d ≤ 3)"], ["portrait", "portret kątowy"], ["hist", "histogram cos"], ["gram", "wiele wektorów"]], "pic", (v, user) => { if (user) oView._auto = false; drawA(); }, "Widok");
-const dView = seg(aP, [["pic", "rysunek (d ≤ 3)"], ["portrait", "portret odległości"], ["hist", "histogram"]], "pic", (v, user) => { if (user) dView._auto = false; drawA(); }, "Widok");
+const dView = seg(aP, [["hist", "histogram odległości"], ["profile", "profil sąsiadów"]], "hist", () => drawA(), "Widok");
 const dKind = seg(aP, [["unif", "równomierne w sześcianie"], ["plane", "płaszczyzna 2D w ℝ^d"], ["clust", "5 skupisk"]], "unif", () => { distCache = null; drawA(); }, "Dane");
 const aEpsD = slider2(aP, { label: "margines ε: punkty bliżej niż (1 + ε)·d_min", min: 0.01, max: 0.5, step: 0.01, value: 0.1, on: debounce(() => drawA(), 30) });
 const aT = slider2(aP, { label: "próg prawie prostopadłości t (|cos| < t)", min: 0.01, max: 0.5, step: 0.01, value: 0.1, on: debounce(() => drawA(), 30) });
@@ -1063,12 +1063,15 @@ function distSampler(d, kind, RR) {
   const C = Array.from({ length: 5 }, () => Float64Array.from({ length: d }, () => RR.u()));   // 5 skupisk, odchylenie 0,05 na współrzędną
   return () => { const c = C[Math.floor(RR.u() * 5)]; return Float64Array.from({ length: d }, (_, i) => c[i] + 0.05 * RR.n()); };
 }
-function distData(d, kind) {
-  if (distCache && distCache.d === d && distCache.kind === kind) return distCache;
-  const RR = ML.rng(Math.floor(R.u() * 1e9)), gen = distSampler(d, kind, RR), n = 500, X = Array.from({ length: n }, gen), q = gen();
+const distRefCache = {};
+function distData(d, kind, ref = false) {
+  if (ref) { const key = kind + d; if (distRefCache[key]) return distRefCache[key]; }
+  else if (distCache && distCache.d === d && distCache.kind === kind) return distCache;
+  const RR = ML.rng(ref ? 1000 + d : Math.floor(R.u() * 1e9)), gen = distSampler(d, kind, RR), n = 500, X = Array.from({ length: n }, gen), q = gen();
   const D = X.map(x => { let s2 = 0; for (let i = 0; i < d; i++) s2 += (x[i] - q[i]) ** 2; return Math.sqrt(s2); });
-  const dmin = Math.min(...D), dmax = Math.max(...D), ang = X.map(() => 2 * Math.PI * RR.u()), jit = X.map(() => 0.3 * (2 * RR.u() - 1));
-  return (distCache = { d, kind, X, q, D, dmin, dmax, ang, jit });
+  const out = { d, kind, D, dmin: Math.min(...D), dmax: Math.max(...D) };
+  if (ref) return (distRefCache[kind + d] = out);
+  return (distCache = out);
 }
 const distColor = t => { const c = viridis(1 - Math.max(0, Math.min(1, t))); return `rgb(${c[0]},${c[1]},${c[2]})`; };   // blisko = żółty, daleko = fioletowy
 function drawDist3(cv, S, eps) {
@@ -1113,8 +1116,8 @@ function drawVol3(cv, pts, shellEps = null) {   // shellEps ≠ null: widok skor
   g.fillStyle = COL.muted; g.font = "12px system-ui"; g.fillText("przeciągnij, aby obrócić", 10, H - 10);
 }
 { const cv = $("#aMain"); let drag = null;
-  cv.addEventListener("pointerdown", e => { const k = aSel.get(); if (!(Math.round(aD.get()) === 3 && (((k === "vol" || k === "shell") && aView.get() === "pic") || (k === "gauss" && gView.get() === "pic") || (k === "orth" && oView.get() === "pic") || (k === "dist" && dView.get() === "pic")))) return; drag = [e.clientX, e.clientY]; cv.setPointerCapture(e.pointerId); });
-  cv.addEventListener("pointermove", e => { if (!drag) return; V3.yaw += (e.clientX - drag[0]) * 0.01; V3.pitch = Math.max(-1.4, Math.min(1.4, V3.pitch + (e.clientY - drag[1]) * 0.01)); drag = [e.clientX, e.clientY]; const k = aSel.get(); if (k === "vol") drawVol3(cv, volPoints(3, 3000)); else if (k === "shell") drawVol3(cv, ballPoints(3, 3000), aEps.get()); else if (k === "orth") drawOrth3(cv, dirPoints(3, 1500), aT.get()); else if (k === "dist") drawDist3(cv, distData(3, dKind.get()), aEpsD.get()); else drawGauss3(cv, gaussPoints(3, 2000)); });
+  cv.addEventListener("pointerdown", e => { const k = aSel.get(); if (!(Math.round(aD.get()) === 3 && (((k === "vol" || k === "shell") && aView.get() === "pic") || (k === "gauss" && gView.get() === "pic") || (k === "orth" && oView.get() === "pic")))) return; drag = [e.clientX, e.clientY]; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointermove", e => { if (!drag) return; V3.yaw += (e.clientX - drag[0]) * 0.01; V3.pitch = Math.max(-1.4, Math.min(1.4, V3.pitch + (e.clientY - drag[1]) * 0.01)); drag = [e.clientX, e.clientY]; const k = aSel.get(); if (k === "vol") drawVol3(cv, volPoints(3, 3000)); else if (k === "shell") drawVol3(cv, ballPoints(3, 3000), aEps.get()); else if (k === "orth") drawOrth3(cv, dirPoints(3, 1500), aT.get()); else drawGauss3(cv, gaussPoints(3, 2000)); });
   cv.addEventListener("pointerup", () => (drag = null)); }
 const aCurves = {};
 const volFrac = d => Math.exp((d / 2) * Math.log(Math.PI) - lgamma(d / 2 + 1) - d * Math.LN2);
@@ -1308,49 +1311,53 @@ function drawA() {
     }
   }
   if (k === "dist") {
-    const view = pickView(dView, d, "portrait"), kind = dKind.get(), eps = aEpsD.get(), S = distData(d, kind);
-    const contrast = (S.dmax - S.dmin) / S.dmin, near = S.D.filter(v => v <= (1 + eps) * S.dmin).length, tcol = v => distColor((v - S.dmin) / (S.dmax - S.dmin));
-    if (view === "pic" && d === 1) {
-      const lo = Math.min(S.q[0], ...S.X.map(x => x[0])) - 0.1, hi = Math.max(S.q[0], ...S.X.map(x => x[0])) + 0.1;
-      const P = plotFor(cv, { xmin: lo, xmax: hi, ymin: -(hi - lo) * 0.28, ymax: (hi - lo) * 0.28 }); P.clear(); const g = P.ctx, yy = (hi - lo) * 0.12;
-      g.fillStyle = "rgba(124,58,237,0.12)"; for (const sgn of [-1, 1]) { const a = S.q[0] + sgn * S.dmin, b = S.q[0] + sgn * (1 + eps) * S.dmin; g.fillRect(P.X(Math.min(a, b)), P.Y(yy * 1.6), Math.abs(P.X(b) - P.X(a)), P.Y(-yy * 1.6) - P.Y(yy * 1.6)); }
-      S.X.forEach((x, i) => { g.fillStyle = tcol(S.D[i]); g.fillRect(P.X(x[0]) - 2, P.Y(S.jit[i] * yy * 3) - 2, 4, 4); });
-      for (const [r, col] of [[S.dmin, COL.ink], [S.dmax, "#9C98B0"]]) for (const sgn of [-1, 1]) { const x = S.q[0] + sgn * r; if (x < lo || x > hi) continue; g.strokeStyle = col; g.lineWidth = 2; g.beginPath(); g.moveTo(P.X(x), P.Y(yy * 2)); g.lineTo(P.X(x), P.Y(-yy * 2)); g.stroke(); }
-      g.fillStyle = COL.neg; g.beginPath(); g.arc(P.X(S.q[0]), P.Y(0), 7, 0, 2 * Math.PI); g.fill();
-      P.text("punkty rozsunięte w pionie tylko dla czytelności", P.W / 2, P.H - 10, { align: "center", size: 12, color: COL.muted });
-    } else if (view === "pic" && d === 2) {
-      const xs = S.X.map(x => x[0]).concat(S.q[0]), ys = S.X.map(x => x[1]).concat(S.q[1]), m = 0.08;
-      const P = plotFor(cv, { xmin: Math.min(...xs) - m, xmax: Math.max(...xs) + m, ymin: Math.min(...ys) - m, ymax: Math.max(...ys) + m }); P.clear(); const g = P.ctx;
-      const rr = r => P.X(S.q[0] + r) - P.X(S.q[0]);
-      g.fillStyle = "rgba(124,58,237,0.12)"; g.beginPath(); g.arc(P.X(S.q[0]), P.Y(S.q[1]), rr((1 + eps) * S.dmin), 0, 2 * Math.PI); g.moveTo(P.X(S.q[0]) + rr(S.dmin), P.Y(S.q[1])); g.arc(P.X(S.q[0]), P.Y(S.q[1]), rr(S.dmin), 0, 2 * Math.PI); g.fill("evenodd");
-      S.X.forEach((x, i) => { const nr = S.D[i] <= (1 + eps) * S.dmin; g.fillStyle = tcol(S.D[i]); g.beginPath(); g.arc(P.X(x[0]), P.Y(x[1]), nr ? 5 : 3.2, 0, 2 * Math.PI); g.fill(); if (nr) { g.strokeStyle = COL.acc; g.lineWidth = 2; g.stroke(); } });
-      for (const [r, col, w] of [[S.dmin, COL.ink, 2], [S.dmax, "#9C98B0", 1.5]]) { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.arc(P.X(S.q[0]), P.Y(S.q[1]), rr(r), 0, 2 * Math.PI); g.stroke(); }
-      g.fillStyle = COL.neg; g.beginPath(); g.arc(P.X(S.q[0]), P.Y(S.q[1]), 7, 0, 2 * Math.PI); g.fill();
-    } else if (view === "pic" && d === 3) {
-      drawDist3(cv, S, eps);
-    } else if (view === "portrait") {
-      const L = S.dmax * 1.08, P = plotFor(cv, { xmin: -L, xmax: L, ymin: -L, ymax: L }); P.clear(); const g = P.ctx, rr = r => P.X(r) - P.X(0);
-      g.fillStyle = "rgba(124,58,237,0.12)"; g.beginPath(); g.arc(P.X(0), P.Y(0), rr((1 + eps) * S.dmin), 0, 2 * Math.PI); g.moveTo(P.X(0) + rr(S.dmin), P.Y(0)); g.arc(P.X(0), P.Y(0), rr(S.dmin), 0, 2 * Math.PI); g.fill("evenodd");
-      S.X.forEach((x, i) => { const nr = S.D[i] <= (1 + eps) * S.dmin, px = S.D[i] * Math.cos(S.ang[i]), py = S.D[i] * Math.sin(S.ang[i]); g.fillStyle = tcol(S.D[i]); g.beginPath(); g.arc(P.X(px), P.Y(py), nr ? 4.5 : 2.8, 0, 2 * Math.PI); g.fill(); if (nr) { g.strokeStyle = COL.acc; g.lineWidth = 1.6; g.stroke(); } });
-      for (const [r, col, w] of [[S.dmin, COL.ink, 2], [S.dmax, "#9C98B0", 1.5]]) { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.arc(P.X(0), P.Y(0), rr(r), 0, 2 * Math.PI); g.stroke(); }
-      g.fillStyle = COL.neg; g.beginPath(); g.arc(P.X(0), P.Y(0), 7, 0, 2 * Math.PI); g.fill();
-      P.text("odległość od zapytania (środek) jest prawdziwa; kierunek — umowny", 10, P.H - 10, { size: 12, color: COL.muted });
+    // Wszystkie odległości mierzymy względem najbliższego punktu: r = D / d_min (r = 1 to najbliższy sąsiad).
+    const view = dView.get(), kind = dKind.get(), eps = aEpsD.get(), S = distData(d, kind);
+    const ratios = S.D.map(v => v / S.dmin).sort((a, b) => a - b), near = ratios.filter(r => r <= 1 + eps).length, rmax = ratios[ratios.length - 1];
+    const kc = { unif: COL.acc, plane: COL.ok, clust: COL.pos }[kind];
+    if (view === "hist") {
+      // histogram w skali logarytmicznej: r od 1 do r_max
+      const { g, W, H } = setupCanvas(cv), L = 50, Rm = 16, T = 30, B = 40, hi = Math.max(1.3, rmax * 1.15), lh = Math.log10(hi), nb = 60;
+      const X = r => L + (W - L - Rm) * Math.log10(r) / lh;
+      const cnt = new Array(nb).fill(0); for (const r of ratios) cnt[Math.min(nb - 1, Math.floor(Math.log10(r) / lh * nb))]++;
+      const top = Math.max(...cnt) * 1.1, Y = c => H - B - (H - T - B) * c / top, bw = (W - L - Rm) / nb;
+      // pas „prawie najbliższych”
+      g.fillStyle = "rgba(124,58,237,0.16)"; g.fillRect(X(1), T - 6, Math.max(2, X(Math.min(1 + eps, hi)) - X(1)), H - T - B + 6);
+      cnt.forEach((c, k2) => { const rmid = Math.pow(10, (k2 + 0.5) / nb * lh); g.fillStyle = rmid <= 1 + eps ? COL.acc : "#B9B6C8"; g.fillRect(L + k2 * bw + 0.5, Y(c), Math.max(1, bw - 1), H - B - Y(c)); });
+      g.strokeStyle = COL.line; g.lineWidth = 1; g.beginPath(); g.moveTo(L, T); g.lineTo(L, H - B); g.lineTo(W - Rm, H - B); g.stroke();
+      // podziałki logarytmiczne
+      g.fillStyle = COL.muted; g.font = "11px system-ui"; g.textAlign = "center";
+      const ticks = [1, 1.05, 1.1, 1.2, 1.5, 2, 3, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000].filter(v => v <= hi && (X(v) - X(1) > 22 || v === 1));
+      let lastX = -99; for (const v of ticks) { const x = X(v); if (x - lastX < 30) continue; g.fillText(fmt(v, v < 2 ? 2 : 0) + "×", x, H - B + 14); lastX = x; }
+      g.fillStyle = COL.ink; g.font = "12px system-ui"; g.fillText("ile razy dalej niż najbliższy punkt (D / d_min, skala log)", (L + W) / 2, H - 6);
+      g.textAlign = "left"; g.font = "600 13px system-ui"; g.fillStyle = COL.acc;
+      g.fillText(`pas „prawie najbliższych”: do ${fmt(1 + eps, 2)}× d_min — ${near} z 500 punktów`, L + 6, 18);
     } else {
-      const sq = Math.sqrt(d), vals = S.D.map(v => v / sq), hi = Math.max(...vals) * 1.15;
-      histChart($("#aMain"), vals, { lo: 0, hi, bins: 70, colorFn: v => tcol(v * sq), shade: { a: S.dmin / sq, b: (1 + eps) * S.dmin / sq }, xlabel: "odległość od zapytania / √d (500 punktów)", vlines: [{ x: S.dmin / sq, label: "najbliższy", align: "right" }, { x: S.dmax / sq, label: "najdalszy" }] });
+      // profil sąsiadów: k-ty najbliższy punkt jest r_k razy dalej niż pierwszy; szare krzywe — inne wymiary dla porównania
+      const refs = [2, 10, 100, 1000].map(dd => { const SS = distData(dd, kind, true); return { dd, r: SS.D.map(v => v / SS.dmin).sort((a, b) => a - b) }; });
+      const ks = Array.from({ length: 500 }, (_, i) => i + 1);
+      const series = refs.filter(o => o.dd !== d).map(o => ({ x: ks, y: o.r, color: "#C9C5D8", width: 1.4 }));
+      series.push({ x: ks, y: ratios, color: kc, width: 3, label: `d = ${d}` });
+      lineChart(cv, series, { logx: true, logy: true, xlabel: "k — numer sąsiada (1 = najbliższy, 500 = najdalszy)", ylabel: "D_k / d_min", hlines: [{ y: 1 + eps, color: COL.acc }], vlines: [{ x: Math.max(1, near), label: `${near} sąsiadów poniżej ${fmt(1 + eps, 2)}×`, color: COL.acc }] });
+      // podpisy krzywych porównawczych
+      const { g } = { g: cv.getContext("2d") }; const r = cv.getBoundingClientRect(); g.font = "11px system-ui"; g.fillStyle = COL.muted; g.textAlign = "right";
+      const yAll = refs.flatMap(o => o.r).concat(ratios), ylo = Math.log10(Math.min(...yAll)), yhi = Math.log10(Math.max(...yAll)) || 1;
+      for (const o of refs) if (o.dd !== d) { const y = 14 + (r.height - 14 - 34) * (1 - (Math.log10(o.r[499]) - ylo) / (yhi - ylo || 1)); g.fillText(`d = ${o.dd}`, r.width - 16, y - 4); }
     }
-    const kindTxt = { unif: "punkty równomiernie w sześcianie [0, 1]<sup>d</sup>", plane: "punkty na płaszczyźnie 2D (losowo obróconej) w ℝ<sup>d</sup> z małym szumem", clust: "punkty w 5 skupiskach (odchylenie 0,05 na współrzędną)" }[kind];
-    const viewTxt = view === "pic" ? "Czarny okrąg (sfera) przechodzi przez najbliższy punkt, szary — przez najdalszy; fioletowy pas to „prawie najbliższe” punkty. Kolor: żółty — blisko, fioletowy — daleko."
-      : view === "portrait" ? "Portret: każdy punkt w prawdziwej odległości od zapytania (środek), w losowym kierunku. Kontrast to stosunek szerokości pierścienia między okręgami do promienia wewnętrznego."
-      : "Fioletowe tło: przedział [d<sub>min</sub>, (1 + ε)·d<sub>min</sub>].";
-    eq.innerHTML = `d = ${d}: kontrast (d<sub>max</sub> − d<sub>min</sub>)/d<sub>min</sub> = <span class="big">${fmt(contrast, 3)}</span>; w odległości ≤ (1 + ${fmt(eps, 2)})·d<sub>min</sub> leży <b>${near}</b> z 500 punktów`
-      + `<span class="sub">${kindTxt[0].toUpperCase() + kindTxt.slice(1)}; zapytanie losowane z tego samego rozkładu. ${viewTxt} ${near > 5 ? (kind === "clust" ? `W pasie jest ${near} punktów, ale to praktycznie wyłącznie punkty ze skupiska zapytania — inne skupiska są znacznie dalej. Kolejność sąsiadów w obrębie skupiska staje się przypadkowa, lecz k-NN nadal wskazuje właściwe skupisko (właściwą klasę).` : `Najbliższy sąsiad jest niejednoznaczny: ${near} punktów jest „prawie tak samo blisko”, więc drobny szum zmienia, który z nich wygrywa (niestabilne zapytanie w sensie Beyera i in.).`) : "Najbliższy sąsiad jest wyraźnie wyróżniony."}</span>`;
-    cap.textContent = "Kontrast odległości w funkcji d dla trzech rodzajów danych (skala log na obu osiach):";
-    if (!aCurves.distKinds) { const ds = intsLog(1, 1000, 22), out = {}; const R0 = ML.rng(31);
-      for (const kk of ["unif", "plane", "clust"]) out[kk] = ds.map(dd => { const gen = distSampler(dd, kk, R0), q = gen(); let mn = Infinity, mx = 0; for (let t = 0; t < 300; t++) { const x = gen(); let s2 = 0; for (let i = 0; i < dd; i++) s2 += (x[i] - q[i]) ** 2; const v = Math.sqrt(s2); mn = Math.min(mn, v); mx = Math.max(mx, v); } return (mx - mn) / mn; });
-      aCurves.distKinds = { ds, out }; }
-    const DK = aCurves.distKinds, kc = { unif: COL.acc, plane: COL.ok, clust: COL.pos };
-    lineChart($("#aCurve"), [["unif", "równomierne"], ["plane", "płaszczyzna 2D"], ["clust", "skupiska"]].map(([kk, lab]) => ({ x: DK.ds, y: DK.out[kk], color: kc[kk], label: lab, width: kk === kind ? 3 : 1.6 })), { logx: true, logy: true, xlabel: "wymiar d", mark: { x: d, y: contrast, color: kc[kind] } });
+    const kindTxt = { unif: "Punkty równomiernie w sześcianie [0, 1]<sup>d</sup>", plane: "Punkty na płaszczyźnie 2D (losowo obróconej) w ℝ<sup>d</sup> z małym szumem", clust: "Punkty w 5 skupiskach (odchylenie 0,05 na współrzędną)" }[kind];
+    const viewTxt = view === "hist"
+      ? "Oś pozioma: ile razy dany punkt jest dalej od zapytania niż najbliższy (1× = najbliższy). Przy małym d słupki rozciągają się na dziesiątki razy; przy dużym d wszystkie stłaczają się tuż przy 1× — wtedy fioletowy pas połyka prawie wszystko."
+      : "Profil: k-ty najbliższy punkt jest D<sub>k</sub>/d<sub>min</sub> razy dalej niż pierwszy. Szare krzywe — te same dane dla d = 2, 10, 100, 1000. Przy dużym d krzywa jest prawie płaska: 500. sąsiad jest niewiele dalej niż 1.";
+    const verdict = near > 5 ? (kind === "clust" ? `W pasie jest ${near} punktów, ale to praktycznie wyłącznie punkty ze skupiska zapytania — inne skupiska są wyraźnie dalej, więc k-NN nadal wskazuje właściwe skupisko.` : `Najbliższy sąsiad przestaje być wyróżniony: ${near} punktów jest „prawie tak samo blisko”, więc drobny szum zmienia, który z nich wygrywa (niestabilne zapytanie, Beyer i in.).`) : "Najbliższy sąsiad jest wyraźnie wyróżniony — pozostałe punkty są zauważalnie dalej.";
+    eq.innerHTML = `d = ${d}: w pasie do ${fmt(1 + eps, 2)}× d<sub>min</sub> leży <span class="big">${near} z 500</span> punktów; najdalszy jest ${fmt(rmax, rmax < 10 ? 2 : 0)}× dalej niż najbliższy`
+      + `<span class="sub">${kindTxt}; zapytanie losowane z tego samego rozkładu. ${viewTxt} ${verdict}</span>`;
+    cap.textContent = `Ile z 500 punktów leży w pasie do ${fmt(1 + eps, 2)}× d_min — w funkcji d, dla trzech rodzajów danych (zmiana ε przesuwa krzywe):`;
+    if (!aCurves.distR) { const ds = intsLog(1, 1000, 22), out = {}; const R0 = ML.rng(31);
+      for (const kk of ["unif", "plane", "clust"]) out[kk] = ds.map(dd => { const gen = distSampler(dd, kk, R0), q = gen(), D = []; for (let t = 0; t < 500; t++) { const x = gen(); let s2 = 0; for (let i = 0; i < dd; i++) s2 += (x[i] - q[i]) ** 2; D.push(Math.sqrt(s2)); } const mn = Math.min(...D); return D.map(v => v / mn); });
+      aCurves.distR = { ds, out }; }
+    const DR = aCurves.distR, cols = { unif: COL.acc, plane: COL.ok, clust: COL.pos };
+    lineChart($("#aCurve"), [["unif", "równomierne"], ["plane", "płaszczyzna 2D"], ["clust", "skupiska"]].map(([kk, lab]) => ({ x: DR.ds, y: DR.out[kk].map(rs => rs.filter(r => r <= 1 + eps).length), color: cols[kk], label: lab, width: kk === kind ? 3 : 1.6 })),
+      { logx: true, ymin: 0, ymax: 520, xlabel: "wymiar d", ylabel: "punkty w pasie", mark: { x: d, y: near, color: kc } });
   }
 
 }
