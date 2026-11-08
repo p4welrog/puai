@@ -1064,7 +1064,7 @@ function drawA() {
       P.text("punkty rozsunięte w pionie tylko dla czytelności", P.W / 2, P.Y(-0.55), { align: "center", size: 12, color: COL.muted });
     } else if (pic && d === 2) {
       const P = plotFor(cv, { xmin: -1.2, xmax: 1.2, ymin: -1.2, ymax: 1.2 }); P.clear(); const g = P.ctx;
-      g.fillStyle = "rgba(124,58,237,0.10)"; g.beginPath(); g.arc(P.X(0), P.Y(0), P.X(1) - P.X(0), 0, 7); g.arc(P.X(0), P.Y(0), P.X(1 - eps) - P.X(0), 0, 7, true); g.fill();
+      g.fillStyle = "rgba(124,58,237,0.10)"; g.beginPath(); g.arc(P.X(0), P.Y(0), P.X(1) - P.X(0), 0, 2 * Math.PI); g.moveTo(P.X(1 - eps), P.Y(0)); g.arc(P.X(0), P.Y(0), P.X(1 - eps) - P.X(0), 0, 2 * Math.PI); g.fill("evenodd");   // pierścień
       pts.forEach(q => { g.fillStyle = colS(q); g.globalAlpha = 0.65; g.fillRect(P.X(q.c[0]) - 1.5, P.Y(q.c[1]) - 1.5, 3, 3); }); g.globalAlpha = 1;
       g.strokeStyle = COL.ink; g.lineWidth = 2; g.beginPath(); g.arc(P.X(0), P.Y(0), P.X(1) - P.X(0), 0, 7); g.stroke();
       g.strokeStyle = COL.acc; g.setLineDash([5, 4]); g.beginPath(); g.arc(P.X(0), P.Y(0), P.X(1 - eps) - P.X(0), 0, 7); g.stroke(); g.setLineDash([]);
