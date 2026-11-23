@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Q-learning w świecie kratowym</title>
+<style>
+:root {
+  --ink: #1E1B2E; --muted: #6B6880; --paper: #FFFFFF; --field: #F4F3F8; --line: #E2E0EA;
+  --accent: #7C3AED; --accent-soft: #EDE7FD; --pos: #2563EB; --neg: #DC2626; --ok: #15803D; --warn: #B45309;
+  --r: 10px;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--field); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif; }
+a { color: var(--accent); }
+header.top { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; padding: 18px 28px 10px; }
+header.top h1 { margin: 0; font-size: 1.55rem; line-height: 1.2; letter-spacing: -0.01em; }
+header.top .crumb { color: var(--muted); font-size: 0.9rem; text-decoration: none; }
+header.top .crumb:hover { color: var(--accent); }
+header.top .lecture { margin-left: auto; color: var(--accent); font-weight: 600; font-size: 0.9rem; }
+main.app { display: grid; grid-template-columns: minmax(0, 1fr) 340px; grid-template-areas: "stage rail" "try rail"; gap: 18px; padding: 8px 28px 28px; align-items: start; }
+main.app > .stage { grid-area: stage; } main.app > .rail { grid-area: rail; } main.app > .tryit { grid-area: try; }
+.stage { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; min-width: 0; }
+.stage canvas.main { display: block; width: 100%; aspect-ratio: 4 / 3; max-height: 70vh; touch-action: none; border-radius: 6px; }
+.rail { display: flex; flex-direction: column; gap: 12px; }
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; }
+.panel h3 { margin: 0 0 10px; font-size: 0.98rem; }
+.panel p { margin: 6px 0; }
+.hint { color: var(--muted); font-size: 0.86rem; }
+/* równanie na żywo — główny akcent strony */
+.equation { margin-top: 12px; padding: 12px 16px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 6px 6px 0;
+  font-size: clamp(1.05rem, 1.8vw, 1.45rem); font-variant-numeric: tabular-nums; line-height: 1.45; overflow-x: auto; white-space: nowrap; }
+.equation .sub { display: block; font-size: 0.68em; color: var(--muted); white-space: normal; }
+.equation b.pos { color: var(--pos); } .equation b.neg { color: var(--neg); }
+/* kontrolki */
+.ctl { margin: 10px 0; }
+.ctl label { display: flex; justify-content: space-between; gap: 8px; font-size: 0.9rem; }
+.ctl label output { font-variant-numeric: tabular-nums; font-weight: 600; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button.btn { font: inherit; font-size: 0.9rem; padding: 7px 12px; border-radius: 7px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); cursor: pointer; }
+button.btn:hover { border-color: var(--accent); }
+button.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.btn:disabled { opacity: 0.45; cursor: default; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
+.seg button { font: inherit; font-size: 0.86rem; padding: 6px 10px; border: 0; background: var(--paper); color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed=true] { background: var(--ink); color: #fff; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 0.9rem; margin: 6px 0; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+dl.stats { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; font-size: 0.92rem; }
+dl.stats dt { color: var(--muted); }
+dl.stats dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.status { padding: 8px 10px; border-radius: 7px; font-size: 0.9rem; background: var(--field); }
+.status.ok { background: #E7F6EC; color: var(--ok); } .status.bad { background: #FDECEC; color: var(--neg); } .status.warn { background: #FEF3E2; color: var(--warn); }
+canvas.mini { display: block; width: 100%; height: 130px; }
+.tryit { margin: 0; }
+.tryit h2 { font-size: 1.02rem; margin: 0 0 6px; }
+.tryit ul { margin: 0; padding-left: 20px; max-width: 75ch; }
+.tryit li { margin: 4px 0; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.86rem; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 5px; }
+.tabs { display: flex; gap: 4px; padding: 0 28px; flex-wrap: wrap; }
+.tabs button { font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0; background: transparent; color: var(--muted); cursor: pointer; }
+.tabs button[aria-selected=true] { background: var(--paper); color: var(--ink); font-weight: 600; }
+[hidden] { display: none !important; }
+@media (max-width: 900px) {
+  main.app { grid-template-columns: 1fr; grid-template-areas: "stage" "rail" "try"; padding: 8px 14px 20px; }
+  .equation { white-space: normal; }
+  header.top { padding: 14px 16px 6px; } .tabs { padding: 0 14px; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+/* ramka z treścią twierdzenia */
+details.thm { margin-top: 12px; padding: 10px 16px 12px; border: 1px solid var(--line); border-left: 4px solid var(--ok); border-radius: 0 6px 6px 0; background: #fff; font-size: 0.95rem; line-height: 1.5; }
+details.thm > summary { cursor: pointer; font-weight: 700; color: var(--ok); list-style: revert; }
+details.thm.emp { border-left-color: #B45309; } details.thm.emp > summary { color: #B45309; }
+details.thm p { margin: 8px 0 0; } details.thm .lbl { font-weight: 700; color: var(--ink); }
+details.thm .src { color: var(--muted); font-size: 0.88em; }
+/* objaśnienia symboli we wzorach */
+details.sym { margin-top: 10px; padding: 8px 16px 10px; border: 1px solid var(--line); border-left: 4px solid var(--muted); border-radius: 0 6px 6px 0; background: #fff; font-size: 0.92rem; line-height: 1.45; }
+details.sym > summary { cursor: pointer; font-weight: 700; color: var(--ink); }
+details.sym dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 8px 0 0; }
+details.sym dt { font-weight: 600; white-space: nowrap; } details.sym dd { margin: 0; color: var(--ink); }
+details.sym p { margin: 8px 0 0; color: var(--muted); }
+@media (max-width: 560px) { details.sym dl { grid-template-columns: 1fr; } details.sym dd { margin-bottom: 6px; } }
+
+/* opcje i przyciski chwilowo niedostępne */
+.seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
+.seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
+button.btn:disabled { cursor: not-allowed; }
+</style>
+<style>
+.stage canvas.main#cv { aspect-ratio: auto; height: auto; max-height: none; cursor: pointer; }
+.stage .tool { margin-top: 10px; }
+.legend i.sq { border-radius: 2px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="crumb" href="index.html">Proces uczenia się w AI</a>
+  <h1>Q-learning w świecie kratowym</h1>
+  <span class="lecture">wykład 7</span>
+</header>
+
+<main class="app">
+  <section class="stage">
+    <canvas class="main" id="cv" aria-label="Świat kratowy: wartości Q, polityka i położenie agenta"></canvas>
+    <div class="row tool" id="tool"></div>
+    <div class="legend"><span><i class="sq" style="background:#BBF7D0"></i>pole końcowe +1 / cel</span><span><i class="sq" style="background:#FECACA"></i>pole −1 / klif</span><span><i class="sq" style="background:#9C98B0"></i>ściana</span><span><i style="background:var(--accent)"></i>agent; ramka — stan s ostatniej aktualizacji, przerywana — s′</span><span><i class="sq" style="background:#fff;border:2px dashed var(--neg)"></i>widok „polityka”: działanie niezgodne z optymalnym</span></div>
+    <div class="equation" id="eq"></div>
+    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl>
+      <dt>s, a</dt><dd>stan (pole planszy, opisane jako (wiersz, kolumna) od 0) i działanie: ↑ → ↓ ←</dd>
+      <dt>r, s′</dt><dd>nagroda za ten krok i stan, do którego agent trafił (z poślizgiem może to być inne pole niż zamierzone)</dd>
+      <dt>Q(s, a)</dt><dd>oszacowanie oczekiwanego zwrotu po wykonaniu a w s; na planszy: trójkąt pola s zwrócony w stronę a</dd>
+      <dt>max Q(s′, ·)</dt><dd>wartość najlepszego działania w s′ — Q-learning zakłada, że dalej agent będzie działał zachłannie</dd>
+      <dt>a′ (SARSA)</dt><dd>działanie, które agent naprawdę wykona w s′ (także losowe); SARSA używa Q(s′, a′) zamiast max</dd>
+      <dt>cel TD, δ</dt><dd>cel TD = r + γ·(wartość s′), błąd TD δ = cel − Q(s, a); po wejściu w pole końcowe cel = r</dd>
+      <dt>α</dt><dd>współczynnik uczenia: jaką część błędu δ dodajemy do Q(s, a)</dd>
+      <dt>γ</dt><dd>dyskonto: nagroda za k kroków jest warta γ<sup>k</sup> nagrody natychmiastowej</dd>
+      <dt>ε</dt><dd>prawdopodobieństwo losowego działania (eksploracja); w przeciwnym razie działanie o największym Q</dd>
+      <dt>V(s) = max Q(s, ·)</dt><dd>wartość stanu; V*, Q* — wartości optymalne z iteracji wartości (model znany)</dd>
+      <dt>V<sub>k</sub>(s)</dt><dd>w iteracji wartości: najlepszy oczekiwany zwrot osiągalny w k krokach</dd>
+    </dl></details>
+    <details class="thm"><summary>Twierdzenie (Watkins, Dayan 1992)</summary>
+      <p>W skończonym procesie decyzyjnym Markowa tabelaryczny Q-learning zbiega do Q* z prawdopodobieństwem 1, jeśli <span class="lbl">każda para (s, a) jest odwiedzana nieskończenie wiele razy</span>, a współczynniki uczenia α<sub>t</sub> maleją tak, że Σα<sub>t</sub> = ∞ i Σα<sub>t</sub><sup>2</sup> &lt; ∞ (np. α<sub>t</sub> = 1/t).</p>
+      <p>Na tej stronie α jest stałe, więc w świecie z poślizgiem wartości Q drgają wokół Q* zamiast się do nich zbliżać. Pierwszy warunek to wymóg eksploracji: przy ε = 0 część par nie jest odwiedzana i agent może utknąć na gorszej drodze.</p>
+      <p class="src">C. J. C. H. Watkins, P. Dayan, „Q-learning”, Machine Learning 8 (1992) 279–292.</p>
+    </details>
+  </section>
+  <aside class="rail">
+    <div class="panel"><h3>Świat</h3><div id="world"></div></div>
+    <div class="panel"><h3>Algorytm</h3><div id="algo"></div></div>
+    <div class="panel"><h3>Sterowanie</h3><div id="run"></div></div>
+    <div class="panel"><h3>Wynik</h3>
+      <dl class="stats" id="stats"></dl>
+      <p class="hint" style="margin-top:10px" id="chartHint">Zwrot (zdyskontowany) w kolejnych epizodach, średnia ruchoma z 20; przerywana — V*(start):</p>
+      <canvas class="mini" id="chart"></canvas>
+    </div>
+  </aside>
+  <section class="tryit panel">
+    <h2>Spróbuj</h2>
+    <ul>
+      <li>Naciśnij kilka razy „Krok” i czytaj wzór pod planszą: każda aktualizacja zmienia tylko jeden trójkąt — Q(s, a) przesuwa się o α·δ w stronę celu. Nagroda +1 „rozchodzi się” wstecz od pola końcowego dopiero po wielu epizodach.</li>
+      <li>Ustaw ε = 0 i zresetuj Q. Agent eksploruje tylko dzięki temu, że wypróbowane działania tracą wartość (−0,04 za krok); po pierwszym dojściu do +1 trzyma się znalezionej drogi. Porównaj „zgodność z polityką optymalną” z wynikiem przy ε = 0,1.</li>
+      <li>Świat 4×3: ustaw nagrodę za krok −2 i przełącz na „iterację wartości”. Z pól obok −1 agent celowo wchodzi na −1 — każdy krok kosztuje więcej niż kara.</li>
+      <li>Klif: naucz Q-learning i SARSA (po 300–500 epizodów, „Reset Q” między nimi) i porównaj widok „polityka” oraz średni zwrot. Q-learning idzie krawędzią i w trakcie uczenia często spada, SARSA wybiera objazd.</li>
+      <li>Zmień γ z 1 na 0,5 w labiryncie: agent „nie widzi” odległego celu, wartości daleko od niego są bliskie zera. Ustaw poślizg 0 i 0,3 w świecie 4×3 i obejrzyj, jak zmienia się polityka optymalna.</li>
+      <li>Wybierz narzędzie edycji i kliknij pola planszy, by zbudować własny świat (ściany, pola +1 i −1, klif, start).</li>
+    </ul>
+  </section>
+</main>
+<script>
+// ---- Wspólne narzędzia interfejsu i rysowania
+const COL = { pos: "#2563EB", neg: "#DC2626", acc: "#7C3AED", ink: "#1E1B2E", muted: "#6B6880", line: "#E2E0EA", ok: "#15803D" };
+const $ = (s, r = document) => r.querySelector(s);
+const fmt = (v, d = 2) => (!isFinite(v) ? (v > 0 ? "∞" : v < 0 ? "−∞" : "—") : v.toFixed(d).replace("-", "−").replace(".", ","));
+const sgn = (v, d = 2) => (v < 0 ? " − " : " + ") + fmt(Math.abs(v), d);
+const SUP = { "-": "⁻", "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹" };
+const sup = n => String(n).split("").map(ch => SUP[ch] ?? ch).join("");
+// liczba w zapisie naukowym, gdy bardzo mała lub duża
+const sci = (v, d = 2) => (v !== 0 && (Math.abs(v) < 1e-3 || Math.abs(v) >= 1e4) ? (() => { const e = Math.floor(Math.log10(Math.abs(v))); return fmt(v / Math.pow(10, e), 1) + "·10" + sup(e); })() : fmt(v, Math.abs(v) < 0.01 && v !== 0 ? Math.max(d, 4) : d));
+const debounce = (fn, ms = 120) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Suwak: <div class="ctl"><label>…<output></label><input type=range></div>
+function slider(root, { label, min, max, step = 0.01, value, log = false, digits = 2, unit = "", on }) {
+  const box = document.createElement("div"); box.className = "ctl";
+  const id = "s" + Math.random().toString(36).slice(2, 8);
+  box.innerHTML = `<label for="${id}"><span>${label}</span><output></output></label><input id="${id}" type="range">`;
+  const inp = box.querySelector("input"), out = box.querySelector("output");
+  if (log) { inp.min = Math.log10(min); inp.max = Math.log10(max); inp.step = 0.01; } else { inp.min = min; inp.max = max; inp.step = step; }
+  const get = () => (log ? Math.pow(10, +inp.value) : +inp.value);
+  const show = () => { const v = get(); out.textContent = (log ? sci(v, digits) : fmt(v, digits)) + unit; };
+  const set = v => { inp.value = log ? Math.log10(v) : v; show(); };
+  set(value);
+  inp.addEventListener("input", () => { show(); on && on(get()); });
+  root.appendChild(box);
+  return { get, set, input: inp };
+}
+// Przełącznik segmentowy
+function seg(root, options, value, on, label) {
+  const wrap = document.createElement("div"); wrap.className = "seg"; wrap.setAttribute("role", "group"); if (label) wrap.setAttribute("aria-label", label);
+  const btns = options.map(([v, t]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.dataset.v = v; wrap.appendChild(b); return b; });
+  let cur = value;
+  const sync = () => btns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === String(cur))));
+  btns.forEach(b => b.addEventListener("click", () => { if (b.disabled) return; cur = b.dataset.v; sync(); on && on(cur, true); }));
+  sync(); root.appendChild(wrap);
+  // disable(v, flag, title): wyszarza opcję v (z podpowiedzią title, gdy jest wyłączona)
+  const disable = (v, flag, title = "") => { const b = btns.find(x => x.dataset.v === String(v)); if (!b) return; b.disabled = !!flag; b.title = flag ? title : ""; };
+  return { get: () => cur, set: v => { cur = String(v); sync(); }, disable, el: wrap };
+}
+function check(root, label, value, on) {
+  const l = document.createElement("label"); l.className = "check";
+  l.innerHTML = `<input type="checkbox"> <span>${label}</span>`; const c = l.querySelector("input"); c.checked = value;
+  c.addEventListener("change", () => on && on(c.checked)); root.appendChild(l);
+  return { get: () => c.checked, set: v => (c.checked = v) };
+}
+function button(root, text, on, primary = false) {
+  const b = document.createElement("button"); b.type = "button"; b.className = "btn" + (primary ? " primary" : ""); b.textContent = text;
+  b.addEventListener("click", on); root.appendChild(b); return b;
+}
+function tabs(bar, panes, on) {
+  const btns = [...bar.querySelectorAll("button")];
+  const pick = i => { btns.forEach((b, j) => b.setAttribute("aria-selected", String(i === j))); panes.forEach((p, j) => (p.hidden = i !== j)); on && on(i); };
+  btns.forEach((b, i) => b.addEventListener("click", () => pick(i)));
+  bar.setAttribute("role", "tablist"); btns.forEach(b => b.setAttribute("role", "tab"));
+  pick(0); return pick;
+}
+
+// Płótno w układzie świata (x, y) z obsługą HiDPI
+class Plot {
+  constructor(canvas, box = { xmin: -3, xmax: 3, ymin: -3, ymax: 3 }, { equal = true } = {}) {
+    this.c = canvas; this.ctx = canvas.getContext("2d"); this.box0 = { ...box }; this.equal = equal;
+    this.resize(); new ResizeObserver(() => { this.resize(); this.onresize && this.onresize(); }).observe(canvas);
+  }
+  resize() {
+    const r = this.c.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    this.W = Math.max(50, r.width); this.H = Math.max(50, r.height);
+    this.c.width = Math.round(this.W * dpr); this.c.height = Math.round(this.H * dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const b = { ...this.box0 };
+    if (this.equal) { // zachowaj proporcje: poszerz krótszą oś
+      const sx = this.W / (b.xmax - b.xmin), sy = this.H / (b.ymax - b.ymin);
+      if (sx > sy) { const cx = (b.xmin + b.xmax) / 2, h = (this.W / sy) / 2; b.xmin = cx - h; b.xmax = cx + h; }
+      else { const cy = (b.ymin + b.ymax) / 2, h = (this.H / sx) / 2; b.ymin = cy - h; b.ymax = cy + h; }
+    }
+    this.b = b;
+  }
+  setBox(box) { this.box0 = { ...box }; this.resize(); }
+  X(x) { return (x - this.b.xmin) / (this.b.xmax - this.b.xmin) * this.W; }
+  Y(y) { return this.H - (y - this.b.ymin) / (this.b.ymax - this.b.ymin) * this.H; }
+  inv(px, py) { return { x: this.b.xmin + px / this.W * (this.b.xmax - this.b.xmin), y: this.b.ymin + (this.H - py) / this.H * (this.b.ymax - this.b.ymin) }; }
+  evt(e) { const r = this.c.getBoundingClientRect(); return this.inv(e.clientX - r.left, e.clientY - r.top); }
+  clear(bg = "#fff") { const g = this.ctx; g.fillStyle = bg; g.fillRect(0, 0, this.W, this.H); }
+  grid(step = 1) {
+    const g = this.ctx, b = this.b; g.lineWidth = 1;
+    for (let x = Math.ceil(b.xmin / step) * step; x <= b.xmax; x += step) { g.strokeStyle = Math.abs(x) < 1e-9 ? "#B9B6C8" : "#EFEEF4"; g.beginPath(); g.moveTo(this.X(x), 0); g.lineTo(this.X(x), this.H); g.stroke(); }
+    for (let y = Math.ceil(b.ymin / step) * step; y <= b.ymax; y += step) { g.strokeStyle = Math.abs(y) < 1e-9 ? "#B9B6C8" : "#EFEEF4"; g.beginPath(); g.moveTo(0, this.Y(y)); g.lineTo(this.W, this.Y(y)); g.stroke(); }
+  }
+  // Mapa ciepła: f(x,y) → [r,g,b,a]
+  heat(f, color, res = 4) {
+    const w = Math.ceil(this.W / res), h = Math.ceil(this.H / res);
+    if (!this._off || this._off.width !== w || this._off.height !== h) { this._off = document.createElement("canvas"); this._off.width = w; this._off.height = h; }
+    const oc = this._off.getContext("2d"), img = oc.createImageData(w, h), d = img.data;
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const p = this.inv((i + 0.5) * res, (j + 0.5) * res), c = color(f(p.x, p.y)), k = 4 * (j * w + i);
+      d[k] = c[0]; d[k + 1] = c[1]; d[k + 2] = c[2]; d[k + 3] = c[3] ?? 255;
+    }
+    oc.putImageData(img, 0, 0);
+    const g = this.ctx; g.save(); g.imageSmoothingEnabled = true; g.drawImage(this._off, 0, 0, this.W, this.H); g.restore();
+  }
+  // Siatka wartości do konturów
+  sample(f, n = 90) {
+    const b = this.b, G = []; for (let j = 0; j <= n; j++) { const row = []; for (let i = 0; i <= n; i++) row.push(f(b.xmin + (b.xmax - b.xmin) * i / n, b.ymin + (b.ymax - b.ymin) * j / n)); G.push(row); }
+    return { G, n };
+  }
+  // Izolinia f = level (marching squares); grid z sample()
+  contour(S, level, { color = COL.ink, width = 2, dash = [] } = {}) {
+    const { G, n } = S, b = this.b, g = this.ctx;
+    const px = i => this.X(b.xmin + (b.xmax - b.xmin) * i / n), py = j => this.Y(b.ymin + (b.ymax - b.ymin) * j / n);
+    g.save(); g.strokeStyle = color; g.lineWidth = width; g.setLineDash(dash); g.beginPath();
+    const lerp = (a, c) => (level - a) / (c - a);
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+      const v = [G[j][i], G[j][i + 1], G[j + 1][i + 1], G[j + 1][i]];
+      if (v.some(x => !isFinite(x))) continue;
+      const pts = [];
+      const e = [[0, 1, i, j, i + 1, j], [1, 2, i + 1, j, i + 1, j + 1], [3, 2, i, j + 1, i + 1, j + 1], [0, 3, i, j, i, j + 1]];
+      for (const [a, c, x0, y0, x1, y1] of e) if ((v[a] - level) * (v[c] - level) < 0) { const t = lerp(v[a], v[c]); pts.push([px(x0 + (x1 - x0) * t), py(y0 + (y1 - y0) * t)]); }
+      for (let k = 0; k + 1 < pts.length; k += 2) { g.moveTo(...pts[k]); g.lineTo(...pts[k + 1]); }
+    }
+    g.stroke(); g.restore();
+  }
+  // Prosta w0 + w1 x + w2 y = c
+  line(w0, w1, w2, { color = COL.ink, width = 2.5, dash = [], c = 0 } = {}) {
+    const b = this.b, g = this.ctx; let P;
+    if (Math.abs(w1) < 1e-12 && Math.abs(w2) < 1e-12) return;
+    if (Math.abs(w2) > Math.abs(w1)) P = [[b.xmin, (c - w0 - w1 * b.xmin) / w2], [b.xmax, (c - w0 - w1 * b.xmax) / w2]];
+    else P = [[(c - w0 - w2 * b.ymin) / w1, b.ymin], [(c - w0 - w2 * b.ymax) / w1, b.ymax]];
+    g.save(); g.strokeStyle = color; g.lineWidth = width; g.setLineDash(dash); g.beginPath(); g.moveTo(this.X(P[0][0]), this.Y(P[0][1])); g.lineTo(this.X(P[1][0]), this.Y(P[1][1])); g.stroke(); g.restore();
+  }
+  arrow(x0, y0, x1, y1, color = COL.acc, width = 2.5) {
+    const g = this.ctx, a = [this.X(x0), this.Y(y0)], b = [this.X(x1), this.Y(y1)], ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+    g.save(); g.strokeStyle = g.fillStyle = color; g.lineWidth = width; g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke();
+    g.beginPath(); g.moveTo(...b); g.lineTo(b[0] - 12 * Math.cos(ang - 0.4), b[1] - 12 * Math.sin(ang - 0.4)); g.lineTo(b[0] - 12 * Math.cos(ang + 0.4), b[1] - 12 * Math.sin(ang + 0.4)); g.closePath(); g.fill(); g.restore();
+  }
+  // Punkt klasy: +1 krzyżyk niebieski, −1 kółko czerwone
+  point(p, { r = 6, faded = false, ring = null, ringWidth = 2.5 } = {}) {
+    const g = this.ctx, x = this.X(p.x), y = this.Y(p.y);
+    g.save(); g.globalAlpha = faded ? 0.35 : 1; g.lineWidth = 2.6;
+    if (p.c === 1) { g.strokeStyle = COL.pos; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x + r, y); g.moveTo(x, y - r); g.lineTo(x, y + r); g.stroke(); }
+    else { g.strokeStyle = COL.neg; g.fillStyle = "#fff"; g.beginPath(); g.arc(x, y, r * 0.8, 0, 2 * Math.PI); g.fill(); g.stroke(); }
+    if (ring) { g.globalAlpha = 1; g.strokeStyle = ring; g.lineWidth = ringWidth; g.beginPath(); g.arc(x, y, r + 6, 0, 2 * Math.PI); g.stroke(); }
+    g.restore();
+  }
+  text(s, x, y, { color = COL.ink, size = 13, align = "left", base = "alphabetic", weight = 400 } = {}) {
+    const g = this.ctx; g.save(); g.fillStyle = color; g.font = `${weight} ${size}px system-ui, sans-serif`; g.textAlign = align; g.textBaseline = base; g.fillText(s, x, y); g.restore();
+  }
+  nearest(pts, e, maxPx = 14) {
+    const r = this.c.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+    let best = -1, bd = maxPx * maxPx;
+    pts.forEach((p, i) => { const d = (this.X(p.x) - mx) ** 2 + (this.Y(p.y) - my) ** 2; if (d < bd) { bd = d; best = i; } });
+    return best;
+  }
+}
+// Kolory map: wartość decyzyjna → tło (niebieskie dla +, czerwone dla −)
+const tint = (v, sat = 1.5) => { const t = Math.tanh(v / sat); const a = Math.abs(t);
+  return t > 0 ? [255 - 196 * a * 0.55, 255 - 155 * a * 0.55, 255 - 20 * a * 0.55, 255] : [255 - 35 * a * 0.55, 255 - 217 * a * 0.55, 255 - 217 * a * 0.55, 255]; };
+const probTint = p => tint(Math.log(p / (1 - p + 1e-12) + 1e-12), 2.2);
+
+// Prosty wykres liniowy / słupkowy
+function miniChart(canvas, series, { bars = false, logy = false, ymin = null, ymax = null, xlabel = "", ylabel = "", hline = null } = {}) {
+  const dpr = window.devicePixelRatio || 1, r = canvas.getBoundingClientRect(), W = r.width, H = r.height, g = canvas.getContext("2d");
+  canvas.width = W * dpr; canvas.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  const L = 40, R = 8, T = 8, B = 22, all = series.flatMap(s => s.values).filter(v => isFinite(v) && (!logy || v > 0));
+  if (!all.length) { g.fillStyle = COL.muted; g.font = "12px system-ui"; g.fillText("brak danych", L, H / 2); return; }
+  const tr = v => (logy ? Math.log10(v) : v);
+  let lo = ymin ?? Math.min(...all.map(tr)), hi = ymax ?? Math.max(...all.map(tr)); if (hi - lo < 1e-9) { hi += 1; lo -= bars ? 0 : 1; }
+  if (bars) lo = Math.min(0, lo);
+  const n = Math.max(...series.map(s => s.values.length)), X = i => L + (W - L - R) * (bars ? (i + 0.5) / Math.max(n, 1) : i / Math.max(n - 1, 1)), Y = v => T + (H - T - B) * (1 - (tr(v) - lo) / (hi - lo));
+  g.strokeStyle = COL.line; g.lineWidth = 1; g.beginPath(); g.moveTo(L, T); g.lineTo(L, H - B); g.lineTo(W - R, H - B); g.stroke();
+  g.fillStyle = COL.muted; g.font = "11px system-ui"; g.textAlign = "right";
+  const ints = all.every(v => Number.isInteger(v));
+  const lab = v => (logy ? "10" + sup(Math.round(v)) : ints || Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(Math.abs(v) < 10 ? 2 : 1).replace(".", ","));
+  g.fillText(lab(hi), L - 4, T + 9); g.fillText(lab(lo), L - 4, H - B);
+  g.textAlign = "center"; if (xlabel) g.fillText(xlabel, (L + W) / 2, H - 6);
+  if (hline !== null) { g.strokeStyle = COL.muted; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(L, Y(hline)); g.lineTo(W - R, Y(hline)); g.stroke(); g.setLineDash([]); }
+  for (const s of series) {
+    g.strokeStyle = g.fillStyle = s.color || COL.acc; g.lineWidth = 2;
+    if (bars) { const bw = Math.max(1, (W - L - R) / Math.max(n, 1) * 0.7); s.values.forEach((v, i) => { const y = Y(v); g.fillRect(X(i) - bw / 2, y, bw, H - B - y); }); }
+    else { g.beginPath(); let started = false; s.values.forEach((v, i) => { if (!isFinite(v) || (logy && v <= 0)) return; const y = Math.max(T, Math.min(H - B, Y(v))); started ? g.lineTo(X(i), y) : g.moveTo(X(i), y); started = true; }); g.stroke();
+      if (s.dots) s.values.forEach((v, i) => { if (isFinite(v)) { g.beginPath(); g.arc(X(i), Y(v), 3, 0, 7); g.fill(); } }); }
+    if (s.mark !== undefined) { const i = s.mark; g.beginPath(); g.arc(X(i), Y(s.values[i]), 5, 0, 7); g.fill(); }
+  }
+}
+
+
+// ---- Świat kratowy, iteracja wartości, Q-learning i SARSA (ten sam model co w laboratorium 8)
+const DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1]], ARW = "↑→↓←";
+const PRESETS = {
+  w43: { grid: ["...+", ".#.-", "S..."], step: -0.04, slip: 0.2, gamma: 1, alpha: 0.1, eps: 0.1 },
+  cliff: { grid: ["............", "............", "............", "SCCCCCCCCCCG"], step: -1, slip: 0, gamma: 1, alpha: 0.5, eps: 0.1 },
+  maze: { grid: ["S.#.....", ".##.###.", "....#...", ".##.#.#.", ".#....#+"], step: -0.04, slip: 0, gamma: 0.95, alpha: 0.5, eps: 0.1 },
+};
+const CLIFF_R = -100, MAX_STEPS = 200;
+function mulberry(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+const W = { grid: [], nr: 0, nc: 0, start: 0, step: -0.04, slip: 0.2, gamma: 1 };
+const cellOf = s => W.grid[Math.floor(s / W.nc)][s % W.nc];
+const isDecision = s => ".S".includes(cellOf(s));
+const nS = () => W.nr * W.nc;
+const name = s => `(${Math.floor(s / W.nc)}, ${s % W.nc})`;
+function move(s, a) {
+  const r = Math.floor(s / W.nc) + DIRS[a][0], c = s % W.nc + DIRS[a][1];
+  if (r < 0 || r >= W.nr || c < 0 || c >= W.nc || W.grid[r][c] === "#") return s;
+  return r * W.nc + c;
+}
+function outcome(s2) {
+  const ch = cellOf(s2);
+  if (ch === "C") return [W.start, CLIFF_R, false];
+  return [s2, W.step + (ch === "+" ? 1 : ch === "-" ? -1 : 0), "+-G".includes(ch)];
+}
+function transitions(s, a) {
+  const tr = [[1 - W.slip, a]]; if (W.slip > 0) tr.push([W.slip / 2, (a + 1) % 4], [W.slip / 2, (a + 3) % 4]);
+  return tr.map(([p, b]) => [p, ...outcome(move(s, b))]);
+}
+function decisionStates() { const out = []; for (let s = 0; s < nS(); s++) if (isDecision(s)) out.push(s); return out; }
+function qFromV(V) {
+  const Q = new Float64Array(nS() * 4);
+  for (const s of decisionStates()) for (let a = 0; a < 4; a++) Q[s * 4 + a] = transitions(s, a).reduce((acc, [p, s2, r, d]) => acc + p * (r + (d ? 0 : W.gamma * V[s2])), 0);
+  return Q;
+}
+function bellmanSweep(V) {
+  const Q = qFromV(V), Vn = new Float64Array(V);
+  for (const s of decisionStates()) Vn[s] = Math.max(Q[s * 4], Q[s * 4 + 1], Q[s * 4 + 2], Q[s * 4 + 3]);
+  return Vn;
+}
+function valueIteration() {
+  let V = new Float64Array(nS());
+  for (let it = 0; it < 3000; it++) { const Vn = bellmanSweep(V); let d = 0; for (let s = 0; s < V.length; s++) d = Math.max(d, Math.abs(Vn[s] - V[s])); V = Vn; if (d < 1e-10) break; }
+  return V;
+}
+const maxQ = (Q, s) => Math.max(Q[s * 4], Q[s * 4 + 1], Q[s * 4 + 2], Q[s * 4 + 3]);
+function bestActions(Q, s, tol = 1e-12) { const m = maxQ(Q, s), out = []; for (let a = 0; a < 4; a++) if (Q[s * 4 + a] >= m - tol) out.push(a); return out; }
+
+// ---- Stan ucznia
+const L = { Q: null, N: null, R: mulberry(1), s: null, a: null, t: 0, G: 0, disc: 1, ep: 0, returns: [], last: null, V: null, k: 0, vStar: null, qStar: null, msg: "" };
+function resetLearner() {
+  L.Q = new Float64Array(nS() * 4); L.N = new Int32Array(nS()); L.R = mulberry(1);
+  L.s = null; L.a = null; L.t = 0; L.G = 0; L.disc = 1; L.ep = 0; L.returns = []; L.last = null;
+  L.V = new Float64Array(nS()); L.k = 0; L.vLast = null;
+}
+function refreshStar() { L.vStar = valueIteration(); L.qStar = qFromV(L.vStar); }
+const curEps = () => (decay.get() ? Math.max(0.01, epsS.get() * Math.pow(0.99, L.ep)) : epsS.get());
+function pick(s, e) {
+  if (L.R() < e) return Math.floor(L.R() * 4);
+  const b = bestActions(L.Q, s); return b[Math.floor(L.R() * b.length)];
+}
+function envStep(s, a) {
+  let b = a, slipped = false;
+  if (W.slip > 0 && L.R() < W.slip) { b = (a + (L.R() < 0.5 ? 1 : 3)) % 4; slipped = true; }
+  return [...outcome(move(s, b)), b, slipped];
+}
+function agentStep() {
+  const sarsa = alg.get() === "sarsa", alpha = alphaS.get(), gamma = W.gamma, e = curEps();
+  if (L.s === null) { L.s = W.start; L.t = 0; L.G = 0; L.disc = 1; L.a = sarsa ? pick(L.s, e) : null; }
+  const s = L.s, a = sarsa && L.a !== null ? L.a : pick(s, e);
+  const [s2, r, done, b, slipped] = envStep(s, a);
+  L.G += L.disc * r; L.disc *= gamma; L.t++; L.N[s]++;
+  let a2 = null, nxt = 0;
+  if (!done) { if (sarsa) { a2 = pick(s2, e); nxt = L.Q[s2 * 4 + a2]; } else nxt = maxQ(L.Q, s2); }
+  const old = L.Q[s * 4 + a], target = r + (done ? 0 : gamma * nxt), nw = old + alpha * (target - old);
+  L.Q[s * 4 + a] = nw;
+  L.last = { s, a, b, r, s2, a2, nxt, old, target, nw, done, slipped, sarsa, alpha, gamma, cliff: cellOf(move(s, b)) === "C" };
+  L.s = s2; L.a = a2;
+  if (done || L.t >= MAX_STEPS) { L.returns.push(L.G); L.ep++; L.last.end = done ? "koniec" : "limit"; L.last.G = L.G; L.last.T = L.t; L.s = null; }
+}
+function runEpisode() { do agentStep(); while (L.s !== null); }
+function viStep() { L.vLast = L.V; L.V = bellmanSweep(L.V); L.k++; }
+
+// ---- Interfejs
+const WO = $("#world"), AL = $("#algo"), RU = $("#run");
+const preset = seg(WO, [["w43", "świat 4×3"], ["cliff", "klif"], ["maze", "labirynt"]], "w43", v => loadPreset(v), "Gotowy świat");
+const stepS = slider(WO, { label: "nagroda za krok", min: -2, max: 0, step: 0.01, value: -0.04, on: v => { W.step = v; worldChanged(); } });
+const slipS = slider(WO, { label: "poślizg (ruch w bok)", min: 0, max: 0.5, step: 0.05, value: 0.2, on: v => { W.slip = v; worldChanged(); } });
+const alg = seg(AL, [["q", "Q-learning"], ["sarsa", "SARSA"], ["vi", "iteracja wartości"]], "q", () => { stop(); if (alg.get() === "vi") { L.V = new Float64Array(nS()); L.k = 0; L.vLast = null; } sync(); draw(); }, "Algorytm");
+const alphaS = slider(AL, { label: "α — współczynnik uczenia", min: 0.01, max: 1, step: 0.01, value: 0.1, on: () => draw() });
+const gammaS = slider(AL, { label: "γ — dyskonto", min: 0.5, max: 1, step: 0.01, value: 1, on: v => { W.gamma = v; refreshStar(); if (alg.get() === "vi") { L.V = new Float64Array(nS()); L.k = 0; L.vLast = null; } draw(); } });
+const epsS = slider(AL, { label: "ε — eksploracja", min: 0, max: 1, step: 0.01, value: 0.1, on: () => draw() });
+const decay = check(AL, "malejące ε: ε·0,99<sup>epizod</sup>, najmniej 0,01", false, () => draw());
+const viewHead = document.createElement("p"); viewHead.className = "hint"; viewHead.textContent = "Widok planszy:"; AL.appendChild(viewHead);
+const view = seg(AL, [["q", "Q (trójkąty)"], ["v", "V = max Q"], ["pol", "polityka"], ["n", "odwiedziny"]], "q", () => draw(), "Widok");
+const rowA = document.createElement("div"); rowA.className = "row"; RU.appendChild(rowA);
+const bStep = button(rowA, "Krok", () => { stop(); alg.get() === "vi" ? viStep() : agentStep(); draw(); });
+const bEp = button(rowA, "Epizod", () => { stop(); runEpisode(); draw(); });
+const b100 = button(rowA, "100 epizodów", () => { stop(); for (let i = 0; i < 100; i++) runEpisode(); draw(); });
+const rowB = document.createElement("div"); rowB.className = "row"; rowB.style.marginTop = "8px"; RU.appendChild(rowB);
+const bRun = button(rowB, "Start", () => (running ? stop() : start()), true);
+button(rowB, "Reset Q", () => { stop(); resetLearner(); draw(); });
+const speed = seg(RU, [["slow", "wolno"], ["fast", "szybko"], ["turbo", "epizod na klatkę"]], "slow", null, "Tempo animacji"); speed.el.style.marginTop = "8px";
+const TO = $("#tool"); const toolLab = document.createElement("span"); toolLab.className = "hint"; toolLab.textContent = "Kliknięcie pola ustawia:"; TO.appendChild(toolLab);
+const tool = seg(TO, [["#", "ściana"], ["+", "+1"], ["-", "−1"], ["C", "klif"], ["S", "start"], [".", "puste"]], "#", null, "Narzędzie edycji");
+
+function sync() {
+  const vi = alg.get() === "vi";
+  bEp.disabled = b100.disabled = vi; bEp.title = b100.title = vi ? "W iteracji wartości nie ma epizodów — „Krok” to jedno przejście równania Bellmana po wszystkich stanach" : "";
+  alphaS.input.disabled = epsS.input.disabled = vi;
+  speed.disable("turbo", vi, "W iteracji wartości jeden krok obejmuje już wszystkie stany");
+  if (vi && speed.get() === "turbo") speed.set("fast");
+}
+function loadPreset(v) {
+  stop(); const p = PRESETS[v];
+  W.grid = p.grid.map(r => r.split("")); W.nr = W.grid.length; W.nc = W.grid[0].length;
+  W.step = p.step; W.slip = p.slip; W.gamma = p.gamma;
+  stepS.set(p.step); slipS.set(p.slip); gammaS.set(p.gamma); alphaS.set(p.alpha); epsS.set(p.eps);
+  findStart(); layout(); worldChanged();
+}
+function findStart() { for (let s = 0; s < nS(); s++) if (cellOf(s) === "S") { W.start = s; return; } }
+function worldChanged() { stop(); findStart(); resetLearner(); refreshStar(); draw(); }
+
+// ---- Animacja
+let running = false, acc = 0, lastT = 0;
+const interval = () => (alg.get() === "vi" ? (speed.get() === "slow" ? 600 : 120) : speed.get() === "slow" ? 220 : 25);
+function start() { running = true; bRun.textContent = "Stop"; lastT = performance.now(); acc = 0; requestAnimationFrame(tick); }
+function stop() { running = false; bRun.textContent = "Start"; }
+function tick(now) {
+  if (!running) return;
+  acc += now - lastT; lastT = now;
+  if (alg.get() !== "vi" && speed.get() === "turbo") { runEpisode(); acc = 0; }
+  else { let n = 0; while (acc >= interval() && n < 40) { alg.get() === "vi" ? viStep() : agentStep(); acc -= interval(); n++; } if (n === 40) acc = 0; }
+  draw(); requestAnimationFrame(tick);
+}
+
+// ---- Rysowanie planszy
+const cv = $("#cv"), ctx = cv.getContext("2d");
+let geo = { cs: 50, ox: 0, oy: 0 };
+function layout() { cv.style.aspectRatio = `${W.nc} / ${W.nr}`; cv.style.maxHeight = "70vh"; resize(); }
+function resize() {
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const cs = Math.min(r.width / W.nc, r.height / W.nr);
+  geo = { cs, ox: (r.width - cs * W.nc) / 2, oy: (r.height - cs * W.nr) / 2, w: r.width, h: r.height };
+}
+new ResizeObserver(() => { resize(); drawBoard(); }).observe(cv);
+const BG = { "#": "#9C98B0", "+": "#BBF7D0", "G": "#BBF7D0", "-": "#FECACA", "C": "#FECACA" };
+function valColor(v, scale) {
+  const t = Math.max(-1, Math.min(1, v / (scale || 1))), k = Math.abs(t) * 0.8, c = t >= 0 ? [37, 99, 235] : [220, 38, 38];
+  return `rgb(${Math.round(255 - (255 - c[0]) * k)},${Math.round(255 - (255 - c[1]) * k)},${Math.round(255 - (255 - c[2]) * k)})`;
+}
+function arrowAt(cx, cy, a, len, color = COL.ink, w = 2) {
+  const dx = DIRS[a][1], dy = DIRS[a][0], x0 = cx - dx * len / 2, y0 = cy - dy * len / 2, x1 = cx + dx * len / 2, y1 = cy + dy * len / 2;
+  ctx.save(); ctx.strokeStyle = ctx.fillStyle = color; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  const h = Math.max(5, len * 0.32), ang = Math.atan2(y1 - y0, x1 - x0);
+  ctx.beginPath(); ctx.moveTo(x1 + Math.cos(ang) * 2, y1 + Math.sin(ang) * 2); ctx.lineTo(x1 - h * Math.cos(ang - 0.45), y1 - h * Math.sin(ang - 0.45)); ctx.lineTo(x1 - h * Math.cos(ang + 0.45), y1 - h * Math.sin(ang + 0.45)); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function label(s, x, y, size, color = COL.ink, weight = 400) { ctx.save(); ctx.fillStyle = color; ctx.font = `${weight} ${size}px system-ui, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(s, x, y); ctx.restore(); }
+// w iteracji wartości: Q_k(s, a) liczone z V_(k−1), więc max_a Q_k(s, a) = V_k(s)
+function shownQ() { return alg.get() === "vi" ? (L.vLast ? qFromV(L.vLast) : new Float64Array(nS() * 4)) : L.Q; }
+function drawBoard() {
+  const { cs, ox, oy } = geo, Q = shownQ(), v = view.get(), ds = decisionStates();
+  ctx.clearRect(0, 0, geo.w, geo.h);
+  let scale = 1e-9; for (const s of ds) for (let a = 0; a < 4; a++) scale = Math.max(scale, Math.abs(Q[s * 4 + a]));
+  if (W.grid.flat().some(c => c === "+" || c === "-")) scale = Math.max(scale, 1);
+  let maxN = 1; for (const s of ds) maxN = Math.max(maxN, L.N[s]);
+  const big = cs >= 100, mid = cs >= 44, fs = Math.max(9, Math.min(15, cs * 0.15));
+  for (let s = 0; s < nS(); s++) {
+    const r = Math.floor(s / W.nc), c = s % W.nc, x = ox + c * cs, y = oy + r * cs, ch = cellOf(s), cx = x + cs / 2, cy = y + cs / 2;
+    ctx.fillStyle = BG[ch] || "#fff"; ctx.fillRect(x, y, cs, cs);
+    if (isDecision(s)) {
+      if (v === "q") {
+        const corners = [[[x, y], [x + cs, y]], [[x + cs, y], [x + cs, y + cs]], [[x + cs, y + cs], [x, y + cs]], [[x, y + cs], [x, y]]];
+        const best = bestActions(Q, s);
+        for (let a = 0; a < 4; a++) {
+          ctx.fillStyle = valColor(Q[s * 4 + a], scale); ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(...corners[a][0]); ctx.lineTo(...corners[a][1]); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = "#D6D3E0"; ctx.lineWidth = 1; ctx.stroke();
+          if (big) label(fmt(Q[s * 4 + a], 2), cx + DIRS[a][1] * cs * 0.3, cy + DIRS[a][0] * cs * 0.32, fs, COL.ink, best.length < 4 && best.includes(a) ? 700 : 400);
+        }
+        if (!big && best.length < 4) arrowAt(cx, cy, best[0], cs * 0.4, COL.ink, 1.6);
+      } else if (v === "v") {
+        const V = maxQ(Q, s); ctx.fillStyle = valColor(V, scale); ctx.fillRect(x, y, cs, cs);
+        if (mid) label(fmt(V, Math.abs(V) >= 10 ? 1 : 2), cx, cy - (big ? cs * 0.14 : 0), fs * 1.1);
+        const best = bestActions(Q, s); if (big && best.length < 4) arrowAt(cx, cy + cs * 0.2, best[0], cs * 0.3);
+      } else if (v === "pol") {
+        const best = bestActions(Q, s); if (best.length < 4) best.forEach(a => arrowAt(cx, cy, a, cs * 0.5, COL.ink, 2.2));
+        if (L.qStar && best.length < 4 && !best.every(a => L.qStar[s * 4 + a] >= maxQ(L.qStar, s) - 1e-6)) { ctx.strokeStyle = COL.neg; ctx.lineWidth = 2; ctx.setLineDash([4, 3]); ctx.strokeRect(x + 4, y + 4, cs - 8, cs - 8); ctx.setLineDash([]); }
+      } else if (v === "n") {
+        const k = Math.log(1 + L.N[s]) / Math.log(1 + maxN); ctx.fillStyle = `rgba(124,58,237,${0.08 + 0.6 * k})`; ctx.fillRect(x, y, cs, cs);
+        if (mid) label(String(L.N[s]), cx, cy, fs * 1.05);
+      }
+    }
+    if (ch === "+" || ch === "-") label(ch === "+" ? "+1" : "−1", cx, cy, Math.min(26, cs * 0.3), ch === "+" ? COL.ok : COL.neg, 700);
+    if (ch === "G") label("cel", cx, cy, Math.min(20, cs * 0.28), COL.ok, 700);
+    if (ch === "C" && mid) label("klif", cx, cy, Math.min(14, cs * 0.22), COL.neg);
+    if (ch === "S") label("start", x + cs / 2, y + cs - Math.max(7, cs * 0.1), Math.max(8, Math.min(12, cs * 0.14)), COL.muted);
+  }
+  ctx.strokeStyle = COL.ink; ctx.lineWidth = 1;
+  for (let r = 0; r <= W.nr; r++) { ctx.beginPath(); ctx.moveTo(ox, oy + r * cs); ctx.lineTo(ox + W.nc * cs, oy + r * cs); ctx.stroke(); }
+  for (let c = 0; c <= W.nc; c++) { ctx.beginPath(); ctx.moveTo(ox + c * cs, oy); ctx.lineTo(ox + c * cs, oy + W.nr * cs); ctx.stroke(); }
+  const box = (s, dash) => { const x = ox + (s % W.nc) * cs, y = oy + Math.floor(s / W.nc) * cs; ctx.save(); ctx.strokeStyle = COL.acc; ctx.lineWidth = 3; ctx.setLineDash(dash); ctx.strokeRect(x + 2, y + 2, cs - 4, cs - 4); ctx.restore(); };
+  if (alg.get() !== "vi" && L.last) { box(L.last.s, []); if (L.last.s2 !== L.last.s) box(L.last.s2, [6, 4]); }
+  if (alg.get() === "vi") box(W.start, []);
+  if (alg.get() !== "vi") {
+    const s = L.s ?? W.start, x = ox + (s % W.nc + 0.5) * cs, y = oy + (Math.floor(s / W.nc) + 0.5) * cs;
+    ctx.save(); ctx.globalAlpha = L.s === null ? 0.35 : 1; ctx.fillStyle = COL.acc; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, Math.max(5, cs * 0.12), 0, 7); ctx.fill(); ctx.stroke(); ctx.restore();
+  }
+}
+cv.addEventListener("pointerdown", e => {
+  const r = cv.getBoundingClientRect(), c = Math.floor((e.clientX - r.left - geo.ox) / geo.cs), rr = Math.floor((e.clientY - r.top - geo.oy) / geo.cs);
+  if (c < 0 || c >= W.nc || rr < 0 || rr >= W.nr) return;
+  const t = tool.get(), cur = W.grid[rr][c];
+  if (cur === "S" && t !== "S") { L.msg = "Start można tylko przenieść: wybierz narzędzie „start” i kliknij inne pole."; draw(); return; }
+  if (t === "S") W.grid[Math.floor(W.start / W.nc)][W.start % W.nc] = ".";
+  W.grid[rr][c] = t; L.msg = ""; worldChanged();
+});
+
+// ---- Wzór, statystyki, wykres
+const EQ = $("#eq"), ST = $("#stats");
+function eqHTML() {
+  if (L.msg) return `${L.msg}`;
+  if (alg.get() === "vi") {
+    const V0 = L.vLast;
+    if (!V0) return `V<sub>k+1</sub>(s) = max<sub>a</sub> Σ<sub>s′</sub> P(s′ | s, a)·[r + γ·V<sub>k</sub>(s′)]<span class="sub">Iteracja wartości zna model środowiska. „Krok” to jedno przejście równania Bellmana po wszystkich stanach; ramka — stan startowy, rozpisany po pierwszym kroku.</span>`;
+    const s = W.start, Qk = (() => { const Q = new Float64Array(4); for (let a = 0; a < 4; a++) Q[a] = transitions(s, a).reduce((acc, [p, s2, r, d]) => acc + p * (r + (d ? 0 : W.gamma * V0[s2])), 0); return Q; })();
+    const a = [0, 1, 2, 3].reduce((b, x) => (Qk[x] > Qk[b] ? x : b), 0);
+    const terms = transitions(s, a).map(([p, s2, r, d]) => `${fmt(p, 1)}·(${fmt(r)}${d ? "" : " + " + fmt(W.gamma) + "·" + fmt(V0[s2])})`).join(" + ");
+    return `V<sub>${L.k}</sub>${name(s)} = ${terms} = <b>${fmt(L.V[s], 3)}</b><span class="sub">Najlepsze działanie w stanie startowym: ${ARW[a]}. Po k krokach V<sub>k</sub> to najlepszy zwrot osiągalny w k ruchach; V*(start) = ${fmt(L.vStar[s], 3)}.</span>`;
+  }
+  const l = L.last, sarsa = alg.get() === "sarsa";
+  if (!l) return `Q(s, a) ← Q(s, a) + α·[r + γ·${sarsa ? "Q(s′, a′)" : "max Q(s′, ·)"} − Q(s, a)]<span class="sub">Naciśnij „Krok”: agent wykona jedno działanie (ε-zachłannie), a jedna wartość Q zostanie zaktualizowana.</span>`;
+  const nx = l.done ? "" : ` + ${fmt(l.gamma)}·${fmt(l.nxt)}`;
+  const what = l.done ? "pole końcowe: cel TD = r" : l.sarsa ? `a′ = ${ARW[l.a2]} (wybrane już teraz), Q(s′, a′) = ${fmt(l.nxt)}` : `max Q(s′, ·) = ${fmt(l.nxt)}`;
+  const move = l.slipped ? `zamiar ${ARW[l.a]}, poślizg ${ARW[l.b]}` : `ruch ${ARW[l.a]}`;
+  const end = l.end ? ` · ${l.end === "koniec" ? "koniec epizodu" : "limit " + MAX_STEPS + " kroków"}, zwrot G = ${fmt(l.G, 3)}` : "";
+  return `Q${name(l.s).replace(")", ", " + ARW[l.a] + ")")} ← ${fmt(l.old)} + ${fmt(l.alpha)}·[${fmt(l.r)}${nx} − ${fmt(l.old)}] = <b>${fmt(l.nw)}</b>` +
+    `<span class="sub">s = ${name(l.s)}, ${move}${l.cliff ? " — upadek z klifu, powrót na start" : ""}, s′ = ${name(l.s2)}, r = ${fmt(l.r)}; ${what}; δ = ${fmt(l.target - l.old)}${end}</span>`;
+}
+function stats() {
+  const ds = decisionStates(), Q = shownQ();
+  let agree = 0, n = 0; for (const s of ds) { const b = bestActions(Q, s); if (b.length === 4) continue; n++; if (b.every(a => L.qStar[s * 4 + a] >= maxQ(L.qStar, s) - 1e-6)) agree++; }
+  const last100 = L.returns.slice(-100), avg = last100.length ? last100.reduce((a, b) => a + b, 0) / last100.length : NaN;
+  const rows = alg.get() === "vi"
+    ? [["iteracja k", String(L.k)], ["V<sub>k</sub>(start)", fmt(L.V[W.start], 3)], ["V*(start)", fmt(L.vStar[W.start], 3)], ["polityka zgodna z optymalną", `${agree} / ${ds.length}`]]
+    : [["epizod", String(L.ep)], ["krok w epizodzie", String(L.s === null ? 0 : L.t)], ["ε teraz", fmt(curEps(), 3)], ["ostatni zwrot", L.returns.length ? fmt(L.returns[L.returns.length - 1], 3) : "—"],
+       ["średni zwrot (ost. 100)", fmt(avg, 3)], ["max Q(start, ·)", fmt(maxQ(L.Q, W.start), 3)], ["V*(start)", fmt(L.vStar[W.start], 3)], ["polityka zgodna z optymalną", `${agree} / ${ds.length}`]];
+  ST.innerHTML = rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("");
+}
+function chart() {
+  const R = L.returns, w = 20, ma = [];
+  for (let i = 0; i < R.length; i++) { const lo = Math.max(0, i - w + 1); let s = 0; for (let j = lo; j <= i; j++) s += R[j]; ma.push(s / (i - lo + 1)); }
+  const step = Math.max(1, Math.ceil(ma.length / 300)), pts = ma.filter((_, i) => i % step === 0 || i === ma.length - 1);
+  const v = L.vStar[W.start], lo = Math.min(v, ...pts.slice(Math.floor(pts.length * 0.1))), hi = Math.max(v, ...pts);
+  miniChart($("#chart"), [{ values: pts, color: alg.get() === "sarsa" ? COL.pos : COL.acc }], { hline: v, ymin: pts.length ? Math.min(lo, hi - 0.1) - 0.05 * Math.abs(hi - lo) : null, ymax: pts.length ? hi + 0.05 * Math.abs(hi - lo) + 0.02 : null, xlabel: "epizod" });
+}
+function draw() { drawBoard(); EQ.innerHTML = eqHTML(); stats(); chart(); }
+
+loadPreset("w43"); sync();
+</script>
+</body>
+</html>
