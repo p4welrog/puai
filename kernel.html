@@ -258,6 +258,16 @@ class Plot {
     const g = this.ctx, b = this.b; g.lineWidth = 1;
     for (let x = Math.ceil(b.xmin / step) * step; x <= b.xmax; x += step) { g.strokeStyle = Math.abs(x) < 1e-9 ? "#B9B6C8" : "#EFEEF4"; g.beginPath(); g.moveTo(this.X(x), 0); g.lineTo(this.X(x), this.H); g.stroke(); }
     for (let y = Math.ceil(b.ymin / step) * step; y <= b.ymax; y += step) { g.strokeStyle = Math.abs(y) < 1e-9 ? "#B9B6C8" : "#EFEEF4"; g.beginPath(); g.moveTo(0, this.Y(y)); g.lineTo(this.W, this.Y(y)); g.stroke(); }
+    if (this.axisNames) this.axisLabels(...this.axisNames);
+  }
+  // Podpisy osi przy końcach osi układu (x = 0, y = 0); przy osi poza kadrem — przy brzegu
+  axisLabels(xn = "x₁", yn = "x₂") {
+    const g = this.ctx, b = this.b, clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const yAx = clamp(this.Y(0), 20, this.H - 6), xAx = clamp(this.X(0), 6, this.W - 30);
+    g.save(); g.font = "italic 600 15px system-ui, sans-serif"; g.lineJoin = "round"; g.lineWidth = 4; g.strokeStyle = "rgba(255,255,255,0.9)"; g.fillStyle = "#3F3B52";
+    g.textAlign = "right"; g.textBaseline = "bottom"; g.strokeText(xn, this.W - 6, yAx - 4); g.fillText(xn, this.W - 6, yAx - 4);
+    g.textAlign = "left"; g.textBaseline = "top"; g.strokeText(yn, xAx + 6, 6); g.fillText(yn, xAx + 6, 6);
+    g.restore();
   }
   // Mapa ciepła: f(x,y) → [r,g,b,a]
   heat(f, color, res = 4) {
@@ -745,7 +755,7 @@ let pickTab;
 pickTab = tabs($("#tabs"), [$("#pane1"), $("#pane2")], () => setTimeout(() => { P.resize(); draw(); draw3(); }, 0));
 
 // ================= ZAKŁADKA 1 =================
-const P = new Plot($("#cv"), { xmin: -3.2, xmax: 3.2, ymin: -3.2, ymax: 3.2 });
+const P = new Plot($("#cv"), { xmin: -3.2, xmax: 3.2, ymin: -3.2, ymax: 3.2 }); P.axisNames = ["x₁", "x₂"];
 let seed = 1, train = [], test = [], model = null, hover = null, fitMs = 0;
 const gens = { xor: (n, s) => ML.gen.xor(n, s, 0.12).map(p => ({ ...p, x: p.x * 1.1, y: p.y * 1.1 })), circ: (n, s) => ML.gen.circles(n, s, 0.25), moons: (n, s) => ML.gen.moons(n, s, 0.22), spir: (n, s) => ML.gen.spirals(n, s, 0.12), lin: (n, s) => ML.gen.blobs(n, s, 1.2, 0.7) };
 const D = $("#data");
@@ -795,7 +805,7 @@ P.onresize = draw;
 syncVis(); regen();
 
 // ================= ZAKŁADKA 2 =================
-const cv3 = $("#cv3"), g3 = cv3.getContext("2d"), P2 = new Plot($("#cv2d"), { xmin: -3, xmax: 3, ymin: -3, ymax: 3 });
+const cv3 = $("#cv3"), g3 = cv3.getContext("2d"), P2 = new Plot($("#cv2d"), { xmin: -3, xmax: 3, ymin: -3, ymax: 3 }); P2.axisNames = ["x₁", "x₂"];
 let yaw = -0.7, pitch = 0.45, data3 = [];
 const MP = $("#map");
 const ds3 = seg(MP, [["circ", "okręgi"], ["xor", "XOR"]], "circ", () => { map.set(ds3.get() === "circ" ? "r2" : "prod"); data3 = ds3.get() === "circ" ? ML.gen.circles(120, 3, 0.15) : ML.gen.xor(120, 3).map(p => ({ ...p, x: p.x * 1.2, y: p.y * 1.2 })); bestC(); });
