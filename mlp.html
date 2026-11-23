@@ -93,6 +93,30 @@ button.btn:disabled { cursor: not-allowed; }
 </style>
 <style>
 #net { display: block; width: 100%; height: 270px; margin-top: 12px; border-top: 1px solid var(--line); cursor: pointer; }
+<style>
+/* poszukiwanie hiperparametrów */
+main.app { grid-template-areas: "stage rail" "hpo rail" "try rail"; }
+main.app > .hpo { grid-area: hpo; }
+.hpo h2 { font-size: 1.02rem; margin: 0 0 6px; }
+.hpo > .hint { max-width: 90ch; }
+.hpo-grid { display: grid; grid-template-columns: minmax(240px, 310px) minmax(0, 1fr); gap: 18px; align-items: start; margin-top: 8px; }
+#hpoPlot { display: block; width: 100%; height: 240px; }
+#hpoAxis { margin-top: 6px; }
+#hpoStatus { margin-top: 10px; }
+.tblwrap { overflow-x: auto; margin-top: 10px; }
+table.hp { border-collapse: collapse; width: 100%; font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+table.hp th, table.hp td { padding: 4px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+table.hp th { color: var(--muted); font-weight: 600; }
+table.hp th.on { color: var(--accent); }
+table.hp .l { text-align: left; }
+table.hp tr.best td { background: var(--accent-soft); font-weight: 600; }
+table.hp tr.bad td { color: var(--muted); }
+table.hp button { font: inherit; font-size: 0.8rem; padding: 2px 9px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); cursor: pointer; }
+table.hp button:hover { border-color: var(--accent); }
+@media (max-width: 900px) {
+  main.app { grid-template-areas: "stage" "rail" "hpo" "try"; }
+  .hpo-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
@@ -127,6 +151,16 @@ button.btn:disabled { cursor: not-allowed; }
       <canvas class="mini" id="chartG"></canvas>
     </div>
   </aside>
+  <section class="hpo panel">
+    <h2>Poszukiwanie hiperparametrów</h2>
+    <p class="hint">Zbiór uczący dzielony jest losowo na część dopasowania (75%) i walidacyjną (25%). Każda konfiguracja uczy się na części dopasowania przez tę samą liczbę epok, od wag z tym samym ziarnem; zwycięża najmniejszy koszt walidacyjny. Zbiór testowy nie bierze udziału w wyborze — ocenia raz tylko zwycięzcę. Hiperparametry nieprzeszukiwane mają wartości z paneli obok.</p>
+    <div class="hpo-grid">
+      <div id="hpoCtl"></div>
+      <div><canvas id="hpoPlot" aria-label="Koszt walidacyjny kolejnych prób w zależności od wybranego hiperparametru"></canvas><div id="hpoAxis"></div></div>
+    </div>
+    <div class="status" id="hpoStatus"></div>
+    <div class="tblwrap"><table class="hp" id="hpoTbl"></table></div>
+  </section>
   <section class="tryit panel">
     <h2>Spróbuj</h2>
     <ul>
@@ -137,6 +171,8 @@ button.btn:disabled { cursor: not-allowed; }
       <li>Ustaw 5 warstw z sigmoidą i kliknij „Nowe wagi”. Przed uczeniem pierwsza warstwa dostaje gradient o 2–3 rzędy wielkości mniejszy niż ostatnia (zanikający gradient) i uczy się bardzo wolno. Z tanh lub ReLU słupki są podobnej wysokości.</li>
       <li>Zmniejsz minipaczkę do 1 (SGD): koszt spada szybciej w epokach, ale „drga”. Zwiększ η do 1 — uczenie staje się niestabilne.</li>
       <li>Na księżycach z dużym szumem i 3×8 neuronami ucz długo i porównuj koszt uczący z testowym — rosnąca różnica to przetrenowanie. Zwiększ λ (L2): granica się wygładza.</li>
+      <li>Poszukiwanie hiperparametrów na spiralach (przeszukiwanie losowe, η zaznaczone): na wykresie koszt walidacyjny – η dobre próby skupiają się w wąskim przedziale η, a przy dużym η część prób się rozbiega (czerwone ×). Porównaj z siatką: przy tej samej liczbie prób siatka sprawdza tylko 3 wartości η, losowanie — tyle różnych, ile prób.</li>
+      <li>Po zakończeniu porównaj dokładność walidacyjną zwycięzcy z jego dokładnością testową. Walidacyjna jest zwykle nieco zawyżona — zwycięzcę wybrano właśnie dlatego, że na tej części danych wypadł najlepiej.</li>
     </ul>
   </section>
 </main>
@@ -740,7 +776,7 @@ button(B, "Nowe wagi", () => { wseed++; reset(); });
 function make() {
   const k = preset.get(), nz = noise.get();
   const ds = dataset(k, seed, k === "spirals" ? 300 : 200, k === "blobs" ? 0.5 + nz * 1.5 : k === "spirals" ? nz * 0.6 : nz);
-  train = ds.train; test = ds.test; reset();
+  train = ds.train; test = ds.test; reset(); hpoClear();
 }
 function reset() {
   const sizes = [2, ...new Array(+nL.get()).fill(nH.get()), 2];
@@ -872,6 +908,154 @@ $("#net").addEventListener("click", e => {
 });
 new ResizeObserver(() => net && drawNet()).observe($("#net"));
 P.onresize = () => net && draw();
+// ---------- Poszukiwanie hiperparametrów: walidacja wydzielona ze zbioru uczącego, test tylko dla zwycięzcy
+const HP_SPACE = {
+  layers:  { name: "warstwy ukryte", lab: "warstwy ukryte (siatka: 1, 2, 3)", grid: ["1", "2", "3"], rand: R => ["1", "2", "3", "5"][Math.floor(R.u() * 4)], cur: () => nL.get() },
+  neurons: { name: "neurony", lab: "neuronów w warstwie (2, 4, 8)", grid: [2, 4, 8], rand: R => 1 + Math.floor(R.u() * 8), cur: () => nH.get() },
+  act:     { name: "aktywacja", lab: "aktywacja (tanh, ReLU, σ)", grid: ["tanh", "relu", "sigmoid"], rand: R => ["tanh", "relu", "sigmoid"][Math.floor(R.u() * 3)], cur: () => act.get() },
+  eta:     { name: "η", lab: "η (0,01; 0,1; 1)", grid: [0.01, 0.1, 1], rand: R => Math.pow(10, Math.round(100 * (-2.5 + 2.5 * R.u())) / 100), cur: () => eta.get() },
+  batch:   { name: "minipaczka", lab: "minipaczka (1, 10, pełny wsad)", grid: ["1", "10", "all"], rand: R => ["1", "10", "32", "all"][Math.floor(R.u() * 4)], cur: () => bs.get() },
+  lambda:  { name: "λ", lab: "λ (0; 0,001; 0,01)", grid: [0, 1e-3, 1e-2], rand: R => { const v = Math.pow(10, Math.round(100 * (-5.5 + 4.5 * R.u())) / 100); return v < 1e-5 ? 0 : v; }, cur: () => lamV() },
+};
+const ANAME = { tanh: "tanh", relu: "ReLU", sigmoid: "σ" };
+const ACOL = { tanh: COL.acc, relu: COL.ink, sigmoid: COL.ok };
+const HC = $("#hpoCtl");
+const hMethod = seg(HC, [["rand", "przeszukiwanie losowe"], ["grid", "siatka"]], "rand", () => hpoInfo(), "Metoda poszukiwania");
+const hTrials = slider(HC, { label: "liczba prób (losowe)", min: 4, max: 80, step: 1, value: 24, digits: 0, on: () => hpoInfo() });
+const hEpochs = slider(HC, { label: "epok na próbę", min: 20, max: 400, step: 10, value: 100, digits: 0, on: () => hpoInfo() });
+{ const p = document.createElement("p"); p.className = "hint"; p.textContent = "Przeszukiwane hiperparametry (w nawiasach wartości siatki):"; HC.appendChild(p); }
+const hChk = {}, HP_DEF = { layers: 1, neurons: 1, act: 1, eta: 1 };
+for (const k in HP_SPACE) hChk[k] = check(HC, HP_SPACE[k].lab, !!HP_DEF[k], () => hpoInfo());
+{ const p = document.createElement("p"); p.className = "hint"; p.textContent = "Losowo: warstwy 1, 2, 3 lub 5; neurony 1–8; η log-jednostajnie z [0,003; 1]; minipaczka 1, 10, 32 lub pełny wsad; λ log-jednostajnie z [10⁻⁵; 0,1] (czasem 0)."; HC.appendChild(p); }
+const hRow = document.createElement("div"); hRow.className = "row"; HC.appendChild(hRow);
+const hRun = button(hRow, "Szukaj", () => hpoToggle(), true);
+const hX = seg($("#hpoAxis"), [["eta", "oś x: η"], ["lambda", "λ"], ["npar", "liczba parametrów"], ["i", "nr próby"]], "eta", () => hpoDraw(), "Oś pozioma wykresu");
+
+let hpo = { results: [], job: null, best: null, runs: 0, E: 0, msg: "" };
+const npar = c => { const s = [2, ...new Array(+c.layers).fill(+c.neurons), 2]; let n = 0; for (let l = 1; l < s.length; l++) n += (s[l - 1] + 1) * s[l]; return n; };
+const hpoOn = () => Object.keys(HP_SPACE).filter(k => hChk[k].get());
+function hpoConfigs() {
+  const keys = Object.keys(HP_SPACE), on = hpoOn();
+  const base = Object.fromEntries(keys.map(k => [k, HP_SPACE[k].cur()]));
+  if (hMethod.get() === "grid") {
+    let list = [{ ...base }];
+    for (const k of on) list = list.flatMap(c => HP_SPACE[k].grid.map(v => ({ ...c, [k]: v })));
+    return list;
+  }
+  const R = ML.rng(777 + 31 * hpo.runs + seed);
+  return Array.from({ length: hTrials.get() }, () => { const c = { ...base }; for (const k of on) c[k] = HP_SPACE[k].rand(R); return c; });
+}
+function hpoSplit() {
+  const R = ML.rng(4242 + seed), idx = train.map((_, i) => i);
+  for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(R.u() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+  const nv = Math.round(train.length * 0.25);
+  return { val: idx.slice(0, nv).map(i => train[i]), fit: idx.slice(nv).map(i => train[i]) };
+}
+const tick = () => new Promise(r => setTimeout(r, 0));
+const finiteNet = m => m.W.every(W => W.every(r => r.every(Number.isFinite))) && m.b.every(b => b.every(Number.isFinite));
+async function hpoTrial(c, fit, val, E, job) {
+  const m = new ML2.MLP([2, ...new Array(+c.layers).fill(+c.neurons), 2], c.act, job.ws), R2 = ML.rng(9001 + job.ws);
+  const b = c.batch === "all" ? fit.length : +c.batch, idx = fit.map((_, i) => i);
+  let t0 = performance.now(), ok = true;
+  for (let e = 0; e < E && ok; e++) {
+    for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(R2.u() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+    for (let s = 0; s < idx.length; s += b) m.step(idx.slice(s, s + b).map(i => fit[i]), c.eta, c.lambda);
+    if (e % 5 === 4 || e === E - 1) ok = finiteNet(m);
+    if (performance.now() - t0 > 30) { await tick(); if (job.stop) return null; t0 = performance.now(); }
+  }
+  const jv = ok ? m.loss(val) : Infinity;
+  if (!isFinite(jv)) ok = false;
+  return { c, m: ok ? m : null, ok, jv: ok ? jv : Infinity, av: ok ? m.acc(val) : NaN, af: ok ? m.acc(fit) : NaN };
+}
+const hpoSorted = () => hpo.results.slice().sort((a, b) => a.jv - b.jv || b.av - a.av || a.i - b.i);
+const cfgText = c => `${c.layers}×${c.neurons} ${ANAME[c.act]}, η = ${sci(c.eta, 3)}, paczka ${c.batch === "all" ? "pełna" : c.batch}, λ = ${c.lambda ? sci(c.lambda, 2) : "0"}`;
+async function hpoToggle() {
+  if (hpo.job) { hpo.job.stop = true; return; }
+  const cfgs = hpoConfigs(); if (!cfgs.length) return;
+  running = false; bRun.textContent = "Start";
+  const job = hpo.job = { stop: false, ws: wseed }; hpo.runs++;
+  const { fit, val } = hpoSplit(), E = hEpochs.get(), T0 = performance.now();
+  hpo.results = []; hpo.best = null; hpo.E = E; hpo.ws = wseed; hRun.textContent = "Przerwij"; hpoDraw();
+  for (let i = 0; i < cfgs.length && !job.stop; i++) {
+    const el = (performance.now() - T0) / 1000, eta_s = i ? el / i * (cfgs.length - i) : NaN;
+    hpo.msg = `Próba ${i + 1} z ${cfgs.length}: ${cfgText(cfgs[i])}…` + (i ? ` Pozostało ok. ${fmt(eta_s, 0)} s.` : "");
+    hpoStatus("warn");
+    const r = await hpoTrial(cfgs[i], fit, val, E, job);
+    if (!r || job.stop) break;
+    r.i = i + 1; hpo.results.push(r); hpoDraw();
+  }
+  const stopped = job.stop;
+  hpo.job = null; hRun.textContent = "Szukaj";
+  if (!hpo.results.length) { hpo.msg = "Przerwano przed ukończeniem pierwszej próby."; hpoStatus(""); hpoDraw(); return; }
+  const best = hpoSorted()[0], nbad = hpo.results.filter(r => !r.ok).length;
+  if (!best.ok) { hpo.msg = "Wszystkie próby się rozbiegły — zmniejsz zakres η."; hpoStatus("bad"); hpoDraw(); return; }
+  hpo.best = best;
+  const te = best.m.acc(test), jte = best.m.loss(test);
+  hpo.msg = `${stopped ? "Przerwano po " + hpo.results.length + " próbach. " : `Gotowe: ${hpo.results.length} prób w ${fmt((performance.now() - T0) / 1000, 1)} s. `}`
+    + `Najlepsza — próba ${best.i}: ${cfgText(best.c)}. Koszt walidacyjny ${fmt(best.jv, 3)}, dokładność walidacyjna ${fmt(100 * best.av, 1)}%. `
+    + `Jednorazowa ocena na zbiorze testowym: ${fmt(100 * te, 1)}% (koszt ${fmt(jte, 3)}).` + (nbad ? ` Rozbieżne próby: ${nbad}.` : "");
+  hpoStatus("ok"); hpoDraw();
+}
+let hpoCls = "";
+function hpoNext() {
+  const n = hpoConfigs().length, on = hpoOn().map(k => HP_SPACE[k].name);
+  return `Następne poszukiwanie: ${hMethod.get() === "grid" ? "siatka" : "losowe"}, ${n} ${n === 1 ? "próba" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "próby" : "prób"} × ${hEpochs.get()} epok`
+    + (on.length ? `; przeszukiwane: ${on.join(", ")}.` : "; nic nie zaznaczono — jedna próba z bieżącymi ustawieniami.");
+}
+function hpoStatus(cls = hpoCls) { hpoCls = cls; const s = $("#hpoStatus"); s.className = "status" + (cls ? " " + cls : ""); s.textContent = hpo.msg + (hpo.job ? "" : (hpo.msg ? " " : "") + hpoNext()); }
+function hpoInfo() { hTrials.input.disabled = hMethod.get() === "grid"; if (!hpo.job) hpoStatus(); }
+function hpoClear() { if (hpo.job) hpo.job.stop = true; hpo.results = []; hpo.best = null; hpo.msg = ""; hpoStatus(""); hpoDraw(); }
+function hpoApply(r) {
+  const c = r.c; wseed = hpo.ws; nL.set(c.layers); nH.set(+c.neurons); act.set(c.act); eta.set(c.eta); bs.set(c.batch); lam.set(c.lambda || 1e-5);
+  reset();
+  hpo.msg = `Ustawiono konfigurację z próby ${r.i} (${cfgText(c)}) i nowe wagi z tym samym ziarnem. Naciśnij Start — w poszukiwaniu sieć uczyła się ${hpo.E} epok na 75% zbioru uczącego, tu uczy się na całym, więc wynik będzie podobny, ale nie identyczny.`;
+  hpoStatus("ok");
+}
+function hpoDraw() {
+  // tabela
+  const on = new Set(hpoOn()), res = hpoSorted(), top = res.slice(0, 15), tb = $("#hpoTbl");
+  if (!res.length) { tb.innerHTML = ""; } else {
+    const th = (k, t) => `<th class="${on.has(k) ? "on" : ""}">${t}</th>`;
+    tb.innerHTML = `<thead><tr><th class="l">miejsce</th><th>próba</th>${th("layers", "warstwy")}${th("neurons", "neurony")}${th("act", "aktywacja")}${th("eta", "η")}${th("batch", "paczka")}${th("lambda", "λ")}<th>parametry</th><th>koszt wal.</th><th>dokł. wal.</th><th>dokł. dopas.</th><th></th></tr></thead><tbody>`
+      + top.map((r, k) => { const c = r.c;
+        return `<tr class="${k === 0 && r.ok ? "best" : r.ok ? "" : "bad"}"><td class="l">${k + 1}.</td><td>${r.i}</td><td>${c.layers}</td><td>${c.neurons}</td><td>${ANAME[c.act]}</td><td>${sci(c.eta, 3)}</td><td>${c.batch === "all" ? "pełna" : c.batch}</td><td>${c.lambda ? sci(c.lambda, 2) : "0"}</td><td>${npar(c)}</td>`
+          + (r.ok ? `<td>${fmt(r.jv, 3)}</td><td>${fmt(100 * r.av, 1)}%</td><td>${fmt(100 * r.af, 1)}%</td>` : `<td colspan="3" class="l">rozbieżne</td>`)
+          + `<td><button type="button" data-i="${r.i}">Zastosuj</button></td></tr>`; }).join("")
+      + (res.length > top.length ? `<tr><td class="l hint" colspan="13">… i ${res.length - top.length} gorszych prób (wszystkie są na wykresie)</td></tr>` : "") + "</tbody>";
+  }
+  // wykres rozrzutu: x — wybrany hiperparametr, y — koszt walidacyjny (skala log)
+  const cv = $("#hpoPlot"), dpr = devicePixelRatio || 1, rc = cv.getBoundingClientRect(), W = rc.width, H = rc.height, g = cv.getContext("2d");
+  cv.width = W * dpr; cv.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  const L = 46, Rm = 10, T = 22, B = 26, ax = hX.get();
+  const xv = r => ax === "eta" ? Math.log10(r.c.eta) : ax === "lambda" ? Math.log10(Math.max(r.c.lambda, 1e-5)) : ax === "npar" ? Math.log10(npar(r.c)) : r.i;
+  const xlab = { eta: "η (skala log)", lambda: "λ (skala log; 0 na lewym brzegu)", npar: "liczba parametrów (skala log)", i: "numer próby" }[ax];
+  g.strokeStyle = COL.line; g.lineWidth = 1; g.beginPath(); g.moveTo(L, T); g.lineTo(L, H - B); g.lineTo(W - Rm, H - B); g.stroke();
+  g.font = "11px system-ui"; g.fillStyle = COL.muted; g.textAlign = "center"; g.fillText(xlab, (L + W) / 2, H - 6);
+  g.save(); g.translate(11, (T + H - B) / 2); g.rotate(-Math.PI / 2); g.fillText("koszt walidacyjny (log)", 0, 0); g.restore();
+  // legenda
+  let lx = L + 6; g.textAlign = "left";
+  for (const a of ["tanh", "relu", "sigmoid"]) { g.fillStyle = ACOL[a]; g.beginPath(); g.arc(lx + 4, 11, 4, 0, 7); g.fill(); g.fillStyle = COL.muted; g.fillText(ANAME[a], lx + 11, 15); lx += 20 + g.measureText(ANAME[a]).width + 8; }
+  g.strokeStyle = COL.neg; g.lineWidth = 2; g.beginPath(); g.moveTo(lx, 7); g.lineTo(lx + 8, 15); g.moveTo(lx + 8, 7); g.lineTo(lx, 15); g.stroke(); g.fillStyle = COL.muted; g.fillText("rozbieżna", lx + 12, 15);
+  if (!res.length) { g.fillStyle = COL.muted; g.textAlign = "center"; g.fillText("brak prób — naciśnij „Szukaj”", (L + W) / 2, (T + H - B) / 2); return; }
+  const good = res.filter(r => r.ok), xs = res.map(xv);
+  let x0 = Math.min(...xs), x1 = Math.max(...xs); if (x1 - x0 < 1e-9) { x0 -= 0.5; x1 += 0.5; } const xp = (x1 - x0) * 0.05; x0 -= xp; x1 += xp;
+  const ys = good.map(r => Math.log10(r.jv)); let y0 = ys.length ? Math.min(...ys) : -1, y1 = ys.length ? Math.max(...ys) : 0;
+  if (y1 - y0 < 0.05) { y0 -= 0.1; y1 += 0.1; } const yp = (y1 - y0) * 0.08; y0 -= yp; y1 += yp;
+  const X = v => L + (W - L - Rm) * (v - x0) / (x1 - x0), Y = v => T + (H - T - B) * (1 - (v - y0) / (y1 - y0));
+  g.fillStyle = COL.muted; g.textAlign = "right";
+  g.fillText(fmt(Math.pow(10, y1), 2), L - 4, T + 9); g.fillText(fmt(Math.pow(10, y0), 2), L - 4, H - B);
+  g.textAlign = "center";
+  const xt = v => ax === "i" ? String(Math.round(v)) : sci(Math.pow(10, v), 2);
+  g.fillText(xt(x0 + xp), X(x0 + xp), H - B + 12); g.fillText(xt(x1 - xp), X(x1 - xp), H - B + 12);
+  for (const r of res) {
+    const px = X(xv(r));
+    if (!r.ok) { g.strokeStyle = COL.neg; g.lineWidth = 2; const py = T + 4; g.beginPath(); g.moveTo(px - 4, py - 4); g.lineTo(px + 4, py + 4); g.moveTo(px + 4, py - 4); g.lineTo(px - 4, py + 4); g.stroke(); continue; }
+    const py = Y(Math.log10(r.jv)); g.fillStyle = ACOL[r.c.act]; g.globalAlpha = 0.8; g.beginPath(); g.arc(px, py, 4.5, 0, 7); g.fill(); g.globalAlpha = 1;
+    if (r === good[0]) { g.strokeStyle = COL.acc; g.lineWidth = 2.5; g.beginPath(); g.arc(px, py, 9, 0, 7); g.stroke(); }
+  }
+}
+$("#hpoTbl").addEventListener("click", e => { const b = e.target.closest("button[data-i]"); if (!b) return; const r = hpo.results.find(r => r.i === +b.dataset.i); if (r) hpoApply(r); });
+new ResizeObserver(() => hpoDraw()).observe($("#hpoPlot"));
 make();
 </script>
 </body>
