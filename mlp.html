@@ -93,10 +93,12 @@ button.btn:disabled { cursor: not-allowed; }
 </style>
 <style>
 #net { display: block; width: 100%; height: 270px; margin-top: 12px; border-top: 1px solid var(--line); cursor: pointer; }
+</style>
 <style>
 /* poszukiwanie hiperparametrów */
 main.app { grid-template-areas: "stage rail" "hpo rail" "try rail"; }
-main.app > .hpo { grid-area: hpo; }
+main.app > .hpo { grid-area: hpo; min-width: 0; }
+.hpo-grid > * { min-width: 0; }
 .hpo h2 { font-size: 1.02rem; margin: 0 0 6px; }
 .hpo > .hint { max-width: 90ch; }
 .hpo-grid { display: grid; grid-template-columns: minmax(240px, 310px) minmax(0, 1fr); gap: 18px; align-items: start; margin-top: 8px; }
