@@ -90,6 +90,16 @@ details.sym p { margin: 8px 0 0; color: var(--muted); }
 .seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
 .seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
 button.btn:disabled { cursor: not-allowed; }
+
+/* objaśnienia dla studentów: „Od czego zacząć”, wyjaśnienia w „Spróbuj”, „dla dociekliwych” */
+.intro { margin: 0 28px 12px; padding: 10px 16px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 0.95rem; line-height: 1.5; max-width: 120ch; }
+.intro p { margin: 0; } .intro p + p { margin-top: 4px; }
+.intro a { color: var(--accent); }
+details.ans { margin: 2px 0 6px; }
+details.ans > summary { cursor: pointer; color: var(--accent); font-size: 0.88rem; font-weight: 600; }
+details.ans p { margin: 4px 0 0; padding: 6px 10px; background: var(--paper); border-radius: 6px; font-size: 0.93rem; }
+.xtra { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 10px; background: #FEF3C7; color: #92400E; font-size: 0.74rem; font-weight: 600; line-height: 1.6; vertical-align: 0.1em; white-space: nowrap; }
+@media (max-width: 900px) { .intro { margin: 0 14px 10px; } }
 </style>
 <style>
 #silh { display: block; width: 100%; height: 150px; }
@@ -99,8 +109,9 @@ button.btn:disabled { cursor: not-allowed; }
 <header class="top">
   <a class="crumb" href="index.html">Proces uczenia się w AI</a>
   <h1>Algorytm k-średnich</h1>
-  <span class="lecture">wykład 6</span>
+  <span class="lecture">wykład 6 · lab 8</span>
 </header>
+<div class="intro"><p><b>O co chodzi.</b> Algorytm k-średnich dzieli punkty na k grup (klastrów) bez znajomości etykiet. Na zmianę przypisuje każdy punkt do najbliższego centroidu i przesuwa centroidy do średnich swoich punktów.</p><p><b>Od czego zacząć.</b> Klikaj „Krok” i obserwuj na zmianę przypisanie (punkty zmieniają kolor) i aktualizację (centroidy ✕ się przesuwają). Potem w zakładce „Wybór liczby klastrów” zobacz, jak dobrać k. Kolejne zadania są w sekcji <a href="#" data-try>„Spróbuj”</a> pod rysunkiem.</p></div>
 <nav class="tabs" id="tabs"><button type="button">Algorytm krok po kroku</button><button type="button">Wybór liczby klastrów</button></nav>
 
 <!-- ZAKŁADKA 1 -->
@@ -109,8 +120,8 @@ button.btn:disabled { cursor: not-allowed; }
     <canvas class="main" id="cv" aria-label="Punkty, centroidy i obszary najbliższego centroidu"></canvas>
     <div class="legend"><span><i style="background:#9C98B0"></i>punkt jeszcze nieprzypisany</span><span><i style="background:var(--pos)"></i>kolor = numer klastra</span><span>✕ centroid</span><span>tło: obszar najbliższego centroidu (komórka Woronoja)</span></div>
     <div class="equation" id="eq"></div>
-    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>k</dt><dd>liczba klastrów — podajemy ją z góry</dd><dt>x⁽ⁱ⁾</dt><dd>i-ta próbka (punkt na płaszczyźnie), i = 1, …, n</dd><dt>c⁽ⁱ⁾</dt><dd>numer klastra, do którego przypisano próbkę i</dd><dt>μⱼ</dt><dd>centroid klastra j — średnia przypisanych do niego próbek</dd><dt>‖x − μ‖²</dt><dd>kwadrat odległości euklidesowej</dd><dt>SSE</dt><dd>suma kwadratów odległości próbek od ich centroidów (w scikit-learn: <code>inertia_</code>)</dd><dt>nⱼ</dt><dd>liczba próbek w klastrze j; pusty klaster (nⱼ = 0) zachowuje tu swój stary centroid</dd></dl></details>
-    <details class="thm"><summary>Twierdzenie: SSE nigdy nie rośnie</summary>
+    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>k</dt><dd>liczba klastrów — podajemy ją z góry</dd><dt>x⁽ⁱ⁾</dt><dd>i-ta próbka (punkt na płaszczyźnie), i = 1, …, n</dd><dt>c⁽ⁱ⁾</dt><dd>numer klastra, do którego przypisano próbkę i</dd><dt>μⱼ</dt><dd>centroid klastra j — średnia przypisanych do niego próbek</dd><dt>‖x − μ‖²</dt><dd>kwadrat odległości euklidesowej</dd><dt>SSE</dt><dd>suma kwadratów odległości próbek od ich centroidów (w scikit-learn: <code>inertia_</code>)</dd><dt>nⱼ</dt><dd>liczba próbek w klastrze j; pusty klaster (nⱼ = 0) zachowuje tu swój stary centroid</dd><dt>ARI</dt><dd>skorygowany indeks Randa: zgodność podziału z prawdziwymi grupami — 1 to podział identyczny, ok. 0 to zgodność przypadkowa. Prawdziwe grupy znamy tylko dlatego, że dane są wygenerowane; algorytm ich nie widzi, a w praktyce zwykle ich nie mamy</dd></dl></details>
+    <details class="thm"><summary>Twierdzenie: SSE nigdy nie rośnie <span class="xtra" title="Poza materiałem obowiązkowym — dla chętnych">dla dociekliwych</span></summary>
       <p><span class="lbl">Teza.</span> W algorytmie Lloyda żaden krok nie zwiększa SSE, a algorytm zatrzymuje się po skończonej liczbie kroków.</p>
       <p><span class="lbl">Szkic dowodu.</span> Przypisanie: każda próbka trafia do najbliższego centroidu, więc żaden składnik sumy nie rośnie. Aktualizacja: dla ustalonego zbioru punktów suma Σ‖x − μ‖² jest najmniejsza, gdy μ to ich średnia (pochodna po μ równa zero), więc przesunięcie centroidu do średniej nie zwiększa SSE. Podziałów n punktów na k grup jest skończenie wiele, a SSE nie rośnie — przypisania muszą się w końcu ustalić.</p>
       <p><span class="lbl">Ale:</span> punkt zatrzymania to minimum <em>lokalne</em>. Znalezienie podziału o najmniejszym SSE jest problemem NP-trudnym — stąd k-means++ i wiele startów (<code>n_init</code>).</p>
@@ -160,7 +171,7 @@ button.btn:disabled { cursor: not-allowed; }
     <ul>
       <li>Zestaw „skupiska”: łokieć przy k = 4 i maksimum sylwetki przy k = 4 zgadzają się. Przesuwaj k: przy k = 5 jedno skupisko zostaje przecięte i pojawiają się paski bliskie zera.</li>
       <li>SSE maleje zawsze, gdy k rośnie (przy k = n byłoby równe 0), dlatego k wybieramy po kształcie krzywej, a nie przez minimalizację SSE.</li>
-      <li>„Bez struktury”: krzywa SSE jest gładka, bez łokcia, a sylwetka jest płaska (ok. 0,4 dla każdego k) — żadne k się nie wyróżnia, co sugeruje, że grup tak naprawdę nie ma.</li>
+      <li>„Bez struktury”: krzywa SSE jest gładka, bez łokcia, a sylwetka jest płaska (ok. 0,4 dla każdego k) — żadne k się nie wyróżnia, co sugeruje, że grup tak naprawdę nie ma. Uwaga: sylwetka ok. 0,4 nie oznacza tu dobrego podziału. Nawet dane bez żadnych grup dają sylwetkę wyraźnie powyżej zera, bo k-średnich zawsze tnie je na zwarte kawałki. Wartość sylwetki trzeba porównywać (między k, z danymi bez struktury), a nie oceniać samą.</li>
       <li>„Księżyce”: sylwetka też zakłada klastry zwarte i wypukłe, więc może nagrodzić podział, który mija się z prawdziwymi grupami (sprawdź ARI).</li>
     </ul>
   </section>
@@ -610,6 +621,14 @@ new ResizeObserver(() => scan && draw2()).observe($("#silh"));
 
 tabs($("#tabs"), [$("#pane1"), $("#pane2")], i => setTimeout(() => { if (i === 1) { scan = null; P2.resize(); draw2(); } else { P.resize(); draw(); } }, 0));
 make();
+</script>
+<script>
+// „Spróbuj” w ramce „Od czego zacząć”: przewiń do widocznej sekcji „Spróbuj” bieżącej zakładki
+document.querySelectorAll("a[data-try]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  const t = [...document.querySelectorAll(".tryit")].find(el => el.offsetParent !== null);
+  if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+}));
 </script>
 </body>
 </html>

@@ -90,20 +90,31 @@ details.sym p { margin: 8px 0 0; color: var(--muted); }
 .seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
 .seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
 button.btn:disabled { cursor: not-allowed; }
+
+/* objaśnienia dla studentów: „Od czego zacząć”, wyjaśnienia w „Spróbuj”, „dla dociekliwych” */
+.intro { margin: 0 28px 12px; padding: 10px 16px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 0.95rem; line-height: 1.5; max-width: 120ch; }
+.intro p { margin: 0; } .intro p + p { margin-top: 4px; }
+.intro a { color: var(--accent); }
+details.ans { margin: 2px 0 6px; }
+details.ans > summary { cursor: pointer; color: var(--accent); font-size: 0.88rem; font-weight: 600; }
+details.ans p { margin: 4px 0 0; padding: 6px 10px; background: var(--paper); border-radius: 6px; font-size: 0.93rem; }
+.xtra { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 10px; background: #FEF3C7; color: #92400E; font-size: 0.74rem; font-weight: 600; line-height: 1.6; vertical-align: 0.1em; white-space: nowrap; }
+@media (max-width: 900px) { .intro { margin: 0 14px 10px; } }
 </style>
 </head>
 <body>
 <header class="top">
   <a class="crumb" href="index.html">Proces uczenia się w AI</a>
   <h1>Perceptron krok po kroku</h1>
-  <span class="lecture">wykład 1</span>
+  <span class="lecture">wykład 1 · lab 1</span>
 </header>
+<div class="intro"><p><b>O co chodzi.</b> Perceptron szuka prostej (granicy decyzyjnej), która oddziela punkty niebieskie od czerwonych. Bierze próbki po kolei i tylko po pomyłce przesuwa wagi w stronę poprawnej odpowiedzi.</p><p><b>Od czego zacząć.</b> Kliknij kilka razy „Jeden krok” i czytaj wzór pod rysunkiem: przy trafieniu wagi się nie zmieniają, przy pomyłce granica się obraca. Potem kliknij „Ucz” i obserwuj liczbę pomyłek w kolejnych epokach. Kolejne zadania są w sekcji <a href="#" data-try>„Spróbuj”</a> pod rysunkiem.</p></div>
 <main class="app">
   <section class="stage">
     <canvas class="main" id="cv" aria-label="Płaszczyzna z próbkami i granicą decyzyjną perceptronu"></canvas>
     <div class="legend"><span><i style="background:var(--pos)"></i>klasa +1</span><span><i style="background:var(--neg)"></i>klasa −1</span><span><i style="background:var(--accent)"></i>wektor wag w i bieżąca próbka</span></div>
     <div class="equation" id="eq"></div>
-    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x = (x₁, x₂)</dt><dd>cechy próbki — jej współrzędne na płaszczyźnie</dd><dt>y, ŷ</dt><dd>prawdziwa etykieta i odpowiedź perceptronu; obie równe +1 albo −1</dd><dt>w₁, w₂</dt><dd>wagi cech; wektor (w₁, w₂) — fioletowa strzałka w — jest prostopadły do granicy i wskazuje stronę klasy +1</dd><dt>w₀</dt><dd>obciążenie (bias): przesuwa granicę; to waga wejścia stale równego 1</dd><dt>z</dt><dd>pobudzenie: ważona suma cech; granica decyzyjna to prosta z = 0</dd><dt>ŷ = sgn(z)</dt><dd>funkcja progowa: ŷ = +1, gdy z ≥ 0, w przeciwnym razie −1</dd><dt>η</dt><dd>współczynnik uczenia — długość kroku poprawki</dd><dt>Δw = η(y − ŷ)·[1, x₁, x₂]</dt><dd>reguła uczenia: przy trafieniu y − ŷ = 0 i nic się nie zmienia; przy pomyłce y − ŷ = ±2, więc wagi przesuwają się o ±2η·x w stronę poprawnej odpowiedzi</dd></dl><p>Kolor tła pokazuje wartość z: niebieski — z > 0 (decyzja +1), czerwony — z < 0.</p></details>
+    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x = (x₁, x₂)</dt><dd>cechy próbki — jej współrzędne na płaszczyźnie</dd><dt>y, ŷ</dt><dd>prawdziwa etykieta i odpowiedź perceptronu; obie równe +1 albo −1</dd><dt>w₁, w₂</dt><dd>wagi cech; wektor (w₁, w₂) — fioletowa strzałka w — jest prostopadły do granicy i wskazuje stronę klasy +1</dd><dt>w₀</dt><dd>obciążenie (bias): przesuwa granicę; to waga wejścia stale równego 1</dd><dt>z</dt><dd>pobudzenie: ważona suma cech; granica decyzyjna to prosta z = 0</dd><dt>ŷ = sgn(z)</dt><dd>funkcja progowa: ŷ = +1, gdy z ≥ 0, w przeciwnym razie −1</dd><dt>η</dt><dd>współczynnik uczenia — długość kroku poprawki</dd><dt>epoka</dt><dd>jedno przejście przez wszystkie próbki uczące</dd><dt>dane rozdzielne</dt><dd>liniowo rozdzielne (na wykładzie: liniowo separowalne): istnieje prosta, która oddziela klasy bez błędu</dd><dt>Δw = η(y − ŷ)·[1, x₁, x₂]</dt><dd>reguła uczenia: przy trafieniu y − ŷ = 0 i nic się nie zmienia; przy pomyłce y − ŷ = ±2, więc wagi przesuwają się o ±2η·x w stronę poprawnej odpowiedzi</dd></dl><p>Kolor tła pokazuje wartość z: niebieski — z > 0 (decyzja +1), czerwony — z < 0.</p></details>
   </section>
   <aside class="rail">
     <div class="panel"><h3>Dane</h3><div id="data"></div></div>
@@ -123,9 +134,9 @@ button.btn:disabled { cursor: not-allowed; }
   <section class="tryit panel">
     <h2>Spróbuj</h2>
     <ul>
-      <li>Na danych rozdzielnych ucz od zera z η = 0,1, potem z η = 1. Granica wychodzi identyczna — wagi różnią się tylko skalą. Dlaczego?</li>
+      <li>Na danych rozdzielnych ucz od zera z η = 0,1, potem z η = 1. Granica wychodzi identyczna — wagi różnią się tylko skalą. Dlaczego?<details class="ans"><summary>Wyjaśnienie</summary><p>Przy starcie od w = 0 każda poprawka to ±2η·[1, x₁, x₂], więc wagi są zawsze sumą takich składników — wszystkie z tym samym czynnikiem η. Zmiana η mnoży cały wektor w przez tę samą liczbę, a znak z = w₀ + w₁x₁ + w₂x₂, a więc i każda decyzja, się nie zmienia. Inaczej jest przy losowych wagach początkowych.</p></details></li>
       <li>Zmniejsz odstęp między klasami. Ile epok potrzeba teraz? Twierdzenie Novikoffa mówi o co najwyżej (R/γ)² pomyłkach.</li>
-      <li>Przełącz na XOR albo okręgi i uruchom uczenie. Co dzieje się z liczbą błędów w kolejnych epokach?</li>
+      <li>Przełącz na XOR albo okręgi i uruchom uczenie. Co dzieje się z liczbą błędów w kolejnych epokach?<details class="ans"><summary>Wyjaśnienie</summary><p>Liczba błędów nie spada do zera, tylko waha się z epoki na epokę. Żadna prosta nie oddziela tych klas, więc po każdej poprawce któryś punkt znów jest po złej stronie. Perceptron się nie zatrzymuje, a po 100 epokach strona przerywa uczenie z komunikatem o braku zbieżności.</p></details></li>
       <li>Dodaj do danych rozdzielnych jeden punkt po „złej” stronie. Jeden punkt wystarczy, by perceptron nigdy się nie zatrzymał.</li>
     </ul>
   </section>
@@ -809,6 +820,14 @@ $("#cv").addEventListener("pointermove", e => { if (drag < 0) return; const q = 
 $("#cv").addEventListener("pointerup", () => { if (drag >= 0) { drag = -1; stop(); resetTraining(); } });
 P.onresize = draw;
 makeData();
+</script>
+<script>
+// „Spróbuj” w ramce „Od czego zacząć”: przewiń do widocznej sekcji „Spróbuj” bieżącej zakładki
+document.querySelectorAll("a[data-try]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  const t = [...document.querySelectorAll(".tryit")].find(el => el.offsetParent !== null);
+  if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+}));
 </script>
 </body>
 </html>

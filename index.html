@@ -90,6 +90,8 @@ details.sym p { margin: 8px 0 0; color: var(--muted); }
 .seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
 .seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
 button.btn:disabled { cursor: not-allowed; }
+.lead.how { font-size: 0.95rem; margin-top: -14px; }
+.labtag { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 10px; background: #EDE9FE; color: #5B21B6; font-size: 0.72rem; font-weight: 600; vertical-align: 0.1em; white-space: nowrap; }
 </style>
 <style>
 .wrap { max-width: 1060px; margin: 0 auto; padding: 28px 24px 40px; }
@@ -110,41 +112,42 @@ footer { margin-top: 34px; color: var(--muted); font-size: 0.86rem; max-width: 7
 <div class="wrap">
   <h1>Laboratorium uczenia maszynowego</h1>
   <p class="lead">Szesnaście interaktywnych modeli do wykładów z przedmiotu „Proces uczenia się w AI”. Każdy działa bez internetu, w samej przeglądarce. Zmieniaj parametry, dodawaj i przesuwaj punkty, obserwuj, co robi algorytm.</p>
+  <p class="lead how"><b>Jak korzystać.</b> Na górze każdej strony jest krótka ramka „Od czego zacząć” — od niej zacznij. Pod rysunkiem znajdziesz rozwijane „Oznaczenia we wzorze” i listę „Spróbuj” z zadaniami; przy pytaniach kliknij „Wyjaśnienie”, ale dopiero po samodzielnej próbie. Treści oznaczone „dla dociekliwych” wykraczają poza materiał obowiązkowy. Przy każdej stronie podano numer laboratorium, do którego się odnosi; laboratorium 7 (sieci w PyTorch, tylko studia stacjonarne) nie ma osobnej strony.</p>
 
   <section class="lecture-block"><h2>Wykład 1</h2><div class="list">
-    <a class="item" href="perceptron.html"><canvas data-thumb="perceptron"></canvas><div><strong>Perceptron krok po kroku</strong><span>Reguła uczenia na żywo: każda próbka, każda aktualizacja wag, zbieżność i jej brak.</span></div></a>
-    <a class="item" href="novikoff.html"><canvas data-thumb="novikoff"></canvas><div><strong>Twierdzenie Novikoffa</strong><span>Dowód na żywo: w·u rośnie liniowo, ‖w‖ jak √k. Margines, R, η, kolejność próbek, dane nierozdzielne; widok 3D z obciążeniem.</span></div></a>
+    <a class="item" href="perceptron.html"><canvas data-thumb="perceptron"></canvas><div><strong>Perceptron krok po kroku <small class="labtag">lab 1</small></strong><span>Reguła uczenia na żywo: każda próbka, każda aktualizacja wag, zbieżność i jej brak.</span></div></a>
+    <a class="item" href="novikoff.html"><canvas data-thumb="novikoff"></canvas><div><strong>Twierdzenie Novikoffa <small class="labtag">lab 1</small></strong><span>Dowód na żywo: w·u rośnie liniowo, ‖w‖ jak √k. Margines, R, η, kolejność próbek, dane nierozdzielne; widok 3D z obciążeniem.</span></div></a>
   </div></section>
 
   <section class="lecture-block"><h2>Wykład 2</h2><div class="list">
-    <a class="item" href="gradient.html"><canvas data-thumb="gradient"></canvas><div><strong>Spadek wzdłuż gradientu</strong><span>Wsadowo, SGD i minipaczki na poziomicach funkcji kosztu. Wpływ η i standaryzacji.</span></div></a>
-    <a class="item" href="logreg.html"><canvas data-thumb="logreg"></canvas><div><strong>Regresja logistyczna</strong><span>Sigmoida, szansa i iloraz szans, próg decyzyjny, czułość i swoistość.</span></div></a>
+    <a class="item" href="gradient.html"><canvas data-thumb="gradient"></canvas><div><strong>Spadek wzdłuż gradientu <small class="labtag">lab 2</small></strong><span>Wsadowo, SGD i minipaczki na poziomicach funkcji kosztu. Wpływ η i standaryzacji.</span></div></a>
+    <a class="item" href="logreg.html"><canvas data-thumb="logreg"></canvas><div><strong>Regresja logistyczna <small class="labtag">lab 3</small></strong><span>Sigmoida, szansa i iloraz szans, próg decyzyjny, czułość i swoistość.</span></div></a>
   </div></section>
 
   <section class="lecture-block"><h2>Wykład 3</h2><div class="list">
-    <a class="item" href="overfitting.html"><canvas data-thumb="overfit"></canvas><div><strong>Przetrenowanie i regularyzacja</strong><span>Stopień wielomianu, siła regularyzacji L2, obciążenie i wariancja.</span></div></a>
-    <a class="item" href="svm.html"><canvas data-thumb="svm"></canvas><div><strong>SVM: margines</strong><span>Wektory nośne, miękki margines, parametr C, porównanie z regresją logistyczną.</span></div></a>
-    <a class="item" href="kernel.html"><canvas data-thumb="kernel"></canvas><div><strong>Funkcje jądra</strong><span>XOR, okręgi i spirale. Jądro RBF i wielomianowe, mapowanie do trzech wymiarów.</span></div></a>
+    <a class="item" href="overfitting.html"><canvas data-thumb="overfit"></canvas><div><strong>Przetrenowanie i regularyzacja <small class="labtag">lab 3</small></strong><span>Stopień wielomianu, siła regularyzacji L2, obciążenie i wariancja.</span></div></a>
+    <a class="item" href="svm.html"><canvas data-thumb="svm"></canvas><div><strong>SVM: margines <small class="labtag">lab 4</small></strong><span>Wektory nośne, miękki margines, parametr C, porównanie z regresją logistyczną.</span></div></a>
+    <a class="item" href="kernel.html"><canvas data-thumb="kernel"></canvas><div><strong>Funkcje jądra <small class="labtag">lab 4</small></strong><span>XOR, okręgi i spirale. Jądro RBF i wielomianowe, mapowanie do trzech wymiarów.</span></div></a>
   </div></section>
 
   <section class="lecture-block"><h2>Wykład 4</h2><div class="list">
-    <a class="item" href="tree.html"><canvas data-thumb="tree"></canvas><div><strong>Drzewo decyzyjne</strong><span>Podziały równoległe do osi, głębokość i przetrenowanie, Gini, entropia i błąd klasyfikacji.</span></div></a>
-    <a class="item" href="forest.html"><canvas data-thumb="forest"></canvas><div><strong>Las losowy</strong><span>Próbki bootstrapowe, losowe cechy w węzłach, uśrednianie drzew, błąd OOB.</span></div></a>
-    <a class="item" href="knn.html"><canvas data-thumb="knn"></canvas><div><strong>k najbliższych sąsiadów</strong><span>Wpływ k, metryka, skala cech i klątwa wymiarowości.</span></div></a>
+    <a class="item" href="tree.html"><canvas data-thumb="tree"></canvas><div><strong>Drzewo decyzyjne <small class="labtag">lab 5</small></strong><span>Podziały równoległe do osi, głębokość i przetrenowanie, Gini, entropia i błąd klasyfikacji.</span></div></a>
+    <a class="item" href="forest.html"><canvas data-thumb="forest"></canvas><div><strong>Las losowy <small class="labtag">lab 5</small></strong><span>Próbki bootstrapowe, losowe cechy w węzłach, uśrednianie drzew, błąd OOB.</span></div></a>
+    <a class="item" href="knn.html"><canvas data-thumb="knn"></canvas><div><strong>k najbliższych sąsiadów <small class="labtag">lab 5</small></strong><span>Wpływ k, metryka, skala cech i klątwa wymiarowości.</span></div></a>
   </div></section>
 
   <section class="lecture-block"><h2>Wykład 5</h2><div class="list">
-    <a class="item" href="mlp.html"><canvas data-thumb="mlp"></canvas><div><strong>Sieć neuronowa na płaszczyźnie</strong><span>Uczenie MLP na żywo: architektura, aktywacje, minipaczki, co widzą neurony ukryte, zanikający gradient.</span></div></a>
-    <a class="item" href="backprop.html"><canvas data-thumb="backprop"></canvas><div><strong>Propagacja wsteczna krok po kroku</strong><span>Sieć 2–2–2 z liczbami: przejście w przód, błędy δ, gradienty, aktualizacja, sprawdzenie numeryczne.</span></div></a>
+    <a class="item" href="mlp.html"><canvas data-thumb="mlp"></canvas><div><strong>Sieć neuronowa na płaszczyźnie <small class="labtag">lab 6 i 7</small></strong><span>Uczenie MLP na żywo: architektura, aktywacje, minipaczki, co widzą neurony ukryte, zanikający gradient.</span></div></a>
+    <a class="item" href="backprop.html"><canvas data-thumb="backprop"></canvas><div><strong>Propagacja wsteczna krok po kroku <small class="labtag">lab 6</small></strong><span>Sieć 2–2–2 z liczbami: przejście w przód, błędy δ, gradienty, aktualizacja, sprawdzenie numeryczne.</span></div></a>
   </div></section>
 
   <section class="lecture-block"><h2>Wykład 6</h2><div class="list">
-    <a class="item" href="kmeans.html"><canvas data-thumb="kmeans"></canvas><div><strong>Algorytm k-średnich</strong><span>Przypisanie i aktualizacja krok po kroku, inicjalizacja losowa, k-means++ i ręczna, minima lokalne, wybór k metodą łokcia i współczynnikiem sylwetki.</span></div></a>
-    <a class="item" href="hierarchia.html"><canvas data-thumb="hierarchia"></canvas><div><strong>Grupowanie hierarchiczne</strong><span>Łączenie najbliższych klastrów, dendrogram i jego cięcie, metody łączenia: pojedyncze, pełne, średnie i Warda.</span></div></a>
+    <a class="item" href="kmeans.html"><canvas data-thumb="kmeans"></canvas><div><strong>Algorytm k-średnich <small class="labtag">lab 8</small></strong><span>Przypisanie i aktualizacja krok po kroku, inicjalizacja losowa, k-means++ i ręczna, minima lokalne, wybór k metodą łokcia i współczynnikiem sylwetki.</span></div></a>
+    <a class="item" href="hierarchia.html"><canvas data-thumb="hierarchia"></canvas><div><strong>Grupowanie hierarchiczne <small class="labtag">lab 8</small></strong><span>Łączenie najbliższych klastrów, dendrogram i jego cięcie, metody łączenia: pojedyncze, pełne, średnie i Warda.</span></div></a>
   </div></section>
 
   <section class="lecture-block"><h2>Wykład 7</h2><div class="list">
-    <a class="item" href="qlearning.html"><canvas data-thumb="qlearning"></canvas><div><strong>Q-learning w świecie kratowym</strong><span>Aktualizacja Q krok po kroku, eksploracja ε, SARSA a Q-learning na klifie, iteracja wartości, własne plansze.</span></div></a>
+    <a class="item" href="qlearning.html"><canvas data-thumb="qlearning"></canvas><div><strong>Q-learning w świecie kratowym <small class="labtag">lab 9</small></strong><span>Aktualizacja Q krok po kroku, eksploracja ε, SARSA a Q-learning na klifie, iteracja wartości, własne plansze.</span></div></a>
   </div></section>
 
   <section class="lecture-block"><h2>Przekrojowo (wykłady 3–5)</h2><div class="list">

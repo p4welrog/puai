@@ -90,6 +90,16 @@ details.sym p { margin: 8px 0 0; color: var(--muted); }
 .seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
 .seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
 button.btn:disabled { cursor: not-allowed; }
+
+/* objaśnienia dla studentów: „Od czego zacząć”, wyjaśnienia w „Spróbuj”, „dla dociekliwych” */
+.intro { margin: 0 28px 12px; padding: 10px 16px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 0.95rem; line-height: 1.5; max-width: 120ch; }
+.intro p { margin: 0; } .intro p + p { margin-top: 4px; }
+.intro a { color: var(--accent); }
+details.ans { margin: 2px 0 6px; }
+details.ans > summary { cursor: pointer; color: var(--accent); font-size: 0.88rem; font-weight: 600; }
+details.ans p { margin: 4px 0 0; padding: 6px 10px; background: var(--paper); border-radius: 6px; font-size: 0.93rem; }
+.xtra { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 10px; background: #FEF3C7; color: #92400E; font-size: 0.74rem; font-weight: 600; line-height: 1.6; vertical-align: 0.1em; white-space: nowrap; }
+@media (max-width: 900px) { .intro { margin: 0 14px 10px; } }
 </style>
 <style>
 canvas.proof { display: block; width: 100%; height: 190px; }
@@ -104,9 +114,10 @@ canvas.proof { display: block; width: 100%; height: 190px; }
 <header class="top">
   <a class="crumb" href="index.html">Proces uczenia się w AI</a>
   <h1>Twierdzenie Novikoffa</h1>
-  <span class="lecture">wykład 1</span>
+  <span class="lecture">wykład 1 · lab 1</span>
 </header>
-<nav class="tabs" id="tabs"><button type="button">Płaszczyzna (2D)</button><button type="button">Przestrzeń z obciążeniem (3D)</button></nav>
+<div class="intro"><p><b>O co chodzi.</b> Twierdzenie Novikoffa mówi, że jeśli klasy da się oddzielić prostą z zapasem (marginesem γ), perceptron popełni najwyżej (R/γ)² pomyłek i się zatrzyma. Strona rozwija „Perceptron krok po kroku”, więc warto zacząć od tamtej.</p><p><b>Od czego zacząć.</b> Kliknij „Start” i patrz na wykres dowodu pod rysunkiem: zielona krzywa w·u rośnie szybciej niż fioletowa ‖w‖, a nie może jej przegonić, więc aktualizacji musi być skończenie wiele. Kolejne zadania są w sekcji <a href="#" data-try>„Spróbuj”</a> pod rysunkiem.</p></div>
+<nav class="tabs" id="tabs"><button type="button">Płaszczyzna (2D)</button><button type="button">Przestrzeń z obciążeniem (3D) <span class="xtra" title="Poza materiałem obowiązkowym — dla chętnych">dla dociekliwych</span></button></nav>
 
 <main class="app">
   <section class="stage">
@@ -123,12 +134,12 @@ canvas.proof { display: block; width: 100%; height: 190px; }
     <div class="equation" id="eq"></div>
     <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x̃ = (1, x₁, x₂)</dt><dd>próbka z dopisaną jedynką — dzięki temu obciążenie jest zwykłą wagą w₀</dd><dt>w = (w₀, w₁, w₂)</dt><dd>wagi perceptronu; granica decyzyjna: w·x̃ = 0</dd><dt>u, ‖u‖ = 1</dt><dd>kierunek jednostkowy idealnie rozdzielający dane (zielony); wybieramy ten o największym marginesie</dd><dt>γ</dt><dd>margines w przestrzeni z obciążeniem: min<sub>i</sub> y⁽ⁱ⁾ u·x̃⁽ⁱ⁾ — odległość najbliższego punktu od hiperpłaszczyzny u·x̃ = 0 w ℝ³</dd><dt>R = max ‖x̃⁽ⁱ⁾‖</dt><dd>promień najmniejszej kuli o środku w zerze zawierającej wszystkie x̃ — na płaszczyźnie okrąg x₁² + x₂² = R² − 1</dd><dt>k</dt><dd>liczba dotychczasowych aktualizacji (pomyłek)</dd><dt>w·u, ‖w‖</dt><dd>rzut wag na kierunek idealny i długość wektora wag — oba na wykresie dowodu, podzielone przez η</dd><dt>cos∠(w, u) = w·u/‖w‖</dt><dd>cosinus kąta między wagami a kierunkiem idealnym; nie przekracza 1</dd><dt>D</dt><dd>suma naruszeń marginesu (tylko dla danych nierozdzielnych): √Σ max(0, γ − y⁽ⁱ⁾u·x̃⁽ⁱ⁾)²</dd></dl></details>
     <details class="thm" open id="thmN"><summary>Twierdzenie Novikoffa (1962)</summary>
-      <p>Niech (x<sub>1</sub>, y<sub>1</sub>), …, (x<sub>n</sub>, y<sub>n</sub>), y<sub>i</sub> ∈ {−1, 1}, i niech x̃<sub>i</sub> = (1, x<sub>i</sub>) oznacza wektor z dopisaną jedynką (obciążenie), ‖x̃<sub>i</sub>‖ ≤ R. Jeśli istnieje wektor u, ‖u‖ = 1, i liczba γ &gt; 0 takie, że y<sub>i</sub>·u·x̃<sub>i</sub> ≥ γ dla wszystkich i (dane rozdzielne z marginesem γ), to perceptron startujący z w = 0, z dowolnym η &gt; 0 i przy dowolnej kolejności prezentowania próbek, wykona co najwyżej (R/γ)² aktualizacji wag.</p>
+      <p>Niech (x<sub>1</sub>, y<sub>1</sub>), …, (x<sub>n</sub>, y<sub>n</sub>), y<sub>i</sub> ∈ {−1, 1}, i niech x̃<sub>i</sub> = (1, x<sub>i</sub>) oznacza wektor z dopisaną jedynką (obciążenie), ‖x̃<sub>i</sub>‖ ≤ R. Jeśli istnieje wektor u, ‖u‖ = 1, i liczba γ &gt; 0 takie, że y<sub>i</sub>·u·x̃<sub>i</sub> ≥ γ dla wszystkich i (dane liniowo rozdzielne — na wykładzie: separowalne — z marginesem γ), to perceptron startujący z w = 0, z dowolnym η &gt; 0 i przy dowolnej kolejności prezentowania próbek, wykona co najwyżej (R/γ)² aktualizacji wag.</p>
       <p><span class="lbl">Słowami:</span> jeśli klasy da się rozdzielić z zapasem, perceptron na pewno się zatrzyma — tym szybciej, im większy zapas γ w porównaniu z rozmiarem danych R. Liczba poprawek nie zależy ani od liczby próbek, ani od wymiaru, ani od η, ani od kolejności.</p>
       <p><span class="lbl">Idea dowodu:</span> każda aktualizacja zwiększa w·u co najmniej o ηγ, więc po k aktualizacjach w·u ≥ kηγ; jednocześnie ‖w‖² rośnie najwyżej o η²R², więc ‖w‖ ≤ √k·ηR. Ponieważ w·u ≤ ‖w‖, mamy kγ ≤ √k·R, czyli k ≤ (R/γ)². Oba ograniczenia widać na wykresie poniżej.</p>
       <p class="src">Twierdzenie nic nie mówi o danych nierozdzielnych i nie daje kryterium stopu (γ nie znamy z góry).</p>
     </details>
-    <details class="thm" open id="thmFS" hidden><summary>Twierdzenie Freunda i Schapire’a (1999) — dane nierozdzielne</summary>
+    <details class="thm" open id="thmFS" hidden><summary>Twierdzenie Freunda i Schapire’a (1999) — dane nierozdzielne <span class="xtra" title="Poza materiałem obowiązkowym — dla chętnych">dla dociekliwych</span></summary>
       <p>Niech (x̃<sub>1</sub>, y<sub>1</sub>), (x̃<sub>2</sub>, y<sub>2</sub>), … będzie dowolnym ciągiem z ‖x̃<sub>i</sub>‖ ≤ R. Dla dowolnego u, ‖u‖ = 1, i γ &gt; 0 niech d<sub>i</sub> = max(0, γ − y<sub>i</sub>·u·x̃<sub>i</sub>) i D = √(Σ<sub>i</sub> d<sub>i</sub>²). Wtedy liczba pomyłek (aktualizacji) perceptronu startującego z w = 0 na tym ciągu wynosi najwyżej ((R + D)/γ)².</p>
       <p><span class="lbl">Słowami:</span> nawet gdy idealne rozdzielenie nie istnieje, liczba pomyłek jest ograniczona — przez to, o ile dane naruszają margines γ (strata zawiasowa). Każde kolejne przejście przez dane dokłada jednak swoje naruszenia do D, więc ograniczenie rośnie z liczbą epok: zbieżności nie ma. Dlatego w praktyce używa się perceptronu kieszonkowego lub uśrednionego.</p>
       <p class="src">Dla danych rozdzielnych można wziąć D = 0 i dostajemy twierdzenie Novikoffa.</p>
@@ -1083,6 +1094,14 @@ P.onresize = () => G && draw();
 new ResizeObserver(() => G && draw()).observe($("#proof"));
 tabs($("#tabs"), [$("#pane2d"), $("#pane3d")], () => setTimeout(() => { P.resize(); draw(); }, 0));
 makeData();
+</script>
+<script>
+// „Spróbuj” w ramce „Od czego zacząć”: przewiń do widocznej sekcji „Spróbuj” bieżącej zakładki
+document.querySelectorAll("a[data-try]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  const t = [...document.querySelectorAll(".tryit")].find(el => el.offsetParent !== null);
+  if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+}));
 </script>
 </body>
 </html>

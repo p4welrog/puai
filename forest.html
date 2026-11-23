@@ -90,14 +90,25 @@ details.sym p { margin: 8px 0 0; color: var(--muted); }
 .seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
 .seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
 button.btn:disabled { cursor: not-allowed; }
+
+/* objaśnienia dla studentów: „Od czego zacząć”, wyjaśnienia w „Spróbuj”, „dla dociekliwych” */
+.intro { margin: 0 28px 12px; padding: 10px 16px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 0.95rem; line-height: 1.5; max-width: 120ch; }
+.intro p { margin: 0; } .intro p + p { margin-top: 4px; }
+.intro a { color: var(--accent); }
+details.ans { margin: 2px 0 6px; }
+details.ans > summary { cursor: pointer; color: var(--accent); font-size: 0.88rem; font-weight: 600; }
+details.ans p { margin: 4px 0 0; padding: 6px 10px; background: var(--paper); border-radius: 6px; font-size: 0.93rem; }
+.xtra { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 10px; background: #FEF3C7; color: #92400E; font-size: 0.74rem; font-weight: 600; line-height: 1.6; vertical-align: 0.1em; white-space: nowrap; }
+@media (max-width: 900px) { .intro { margin: 0 14px 10px; } }
 </style>
 </head>
 <body>
 <header class="top">
   <a class="crumb" href="index.html">Proces uczenia się w AI</a>
   <h1>Las losowy</h1>
-  <span class="lecture">wykład 4</span>
+  <span class="lecture">wykład 4 · lab 5</span>
 </header>
+<div class="intro"><p><b>O co chodzi.</b> Las losowy uczy wiele drzew, każde na innej losowej próbce danych (bootstrap), i uśrednia ich odpowiedzi. Pojedyncze drzewa się mylą, ale każde w innym miejscu, więc średnia jest lepsza od typowego drzewa.</p><p><b>Od czego zacząć.</b> Ustaw suwak „liczba drzew” kolejno na 1, 5, 20 i 200. Porównaj kształt granicy i dokładność testową. Kolejne zadania są w sekcji <a href="#" data-try>„Spróbuj”</a> pod rysunkiem.</p></div>
 <main class="app">
   <section class="stage">
     <canvas class="main" id="cv" aria-label="Granica decyzyjna lasu losowego albo pojedynczego drzewa"></canvas>
@@ -788,6 +799,14 @@ function draw() {
 editPoints(P, () => train, mode, (live) => { if (live) draw(); else fit(); }, q => { hoverQ = q; draw(); });
 P.onresize = draw;
 make();
+</script>
+<script>
+// „Spróbuj” w ramce „Od czego zacząć”: przewiń do widocznej sekcji „Spróbuj” bieżącej zakładki
+document.querySelectorAll("a[data-try]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  const t = [...document.querySelectorAll(".tryit")].find(el => el.offsetParent !== null);
+  if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+}));
 </script>
 </body>
 </html>

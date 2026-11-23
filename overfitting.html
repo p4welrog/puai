@@ -90,20 +90,31 @@ details.sym p { margin: 8px 0 0; color: var(--muted); }
 .seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
 .seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
 button.btn:disabled { cursor: not-allowed; }
+
+/* objaśnienia dla studentów: „Od czego zacząć”, wyjaśnienia w „Spróbuj”, „dla dociekliwych” */
+.intro { margin: 0 28px 12px; padding: 10px 16px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 0.95rem; line-height: 1.5; max-width: 120ch; }
+.intro p { margin: 0; } .intro p + p { margin-top: 4px; }
+.intro a { color: var(--accent); }
+details.ans { margin: 2px 0 6px; }
+details.ans > summary { cursor: pointer; color: var(--accent); font-size: 0.88rem; font-weight: 600; }
+details.ans p { margin: 4px 0 0; padding: 6px 10px; background: var(--paper); border-radius: 6px; font-size: 0.93rem; }
+.xtra { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 10px; background: #FEF3C7; color: #92400E; font-size: 0.74rem; font-weight: 600; line-height: 1.6; vertical-align: 0.1em; white-space: nowrap; }
+@media (max-width: 900px) { .intro { margin: 0 14px 10px; } }
 </style>
 </head>
 <body>
 <header class="top">
   <a class="crumb" href="index.html">Proces uczenia się w AI</a>
   <h1>Przetrenowanie i regularyzacja</h1>
-  <span class="lecture">wykład 3</span>
+  <span class="lecture">wykład 3 · lab 3</span>
 </header>
+<div class="intro"><p><b>O co chodzi.</b> Im bardziej złożony model (wyższy stopień wielomianu), tym lepiej dopasowuje się do danych uczących, ale od pewnego momentu gorzej przewiduje nowe dane. To przetrenowanie. Regularyzacja L2 mu przeciwdziała.</p><p><b>Od czego zacząć.</b> Przesuwaj suwak „stopień wielomianu” od 1 do 10 i porównuj w panelu „Wynik” dokładność na zbiorze uczącym i testowym. Kolejne zadania są w sekcji <a href="#" data-try>„Spróbuj”</a> pod rysunkiem.</p></div>
 <main class="app">
   <section class="stage">
     <canvas class="main" id="cv" aria-label="Granica decyzyjna regresji logistycznej na cechach wielomianowych"></canvas>
     <div class="legend"><span><i style="background:var(--pos)"></i>klasa 1</span><span><i style="background:var(--neg)"></i>klasa 0</span><span><i style="background:var(--ink)"></i>granica decyzyjna</span><span id="lgVar" hidden><i style="background:var(--accent)"></i>granice modeli uczonych na innych próbach</span></div>
     <div class="equation" id="eq"></div>
-    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x₁, x₂</dt><dd>cechy próbki (współrzędne punktu)</dd><dt>d</dt><dd>stopień wielomianu — suwak</dd><dt>x₁<sup>a</sup>x₂<sup>b</sup>, a + b ≤ d</dt><dd>cechy wielomianowe: wszystkie iloczyny potęg o łącznym stopniu najwyżej d, np. dla d = 2: x₁, x₂, x₁², x₁x₂, x₂²; ich liczba to (d + 1)(d + 2)/2 − 1</dd><dt>w<sub>ab</sub>, w₀</dt><dd>waga każdej cechy wielomianowej i wyraz wolny</dd><dt>z</dt><dd>pobudzenie; model to regresja logistyczna p = σ(z), granica decyzyjna to z = 0 — prosta w nowych cechach, krzywa na płaszczyźnie</dd><dt>log-loss</dt><dd>koszt dopasowania do danych uczących (entropia krzyżowa)</dd><dt>λ/2 · Σ wⱼ²</dt><dd>kara L2 — nie obejmuje w₀; większa λ wymusza mniejsze wagi i gładszą granicę</dd></dl><p>Każda cecha wielomianowa jest przed uczeniem standaryzowana na zbiorze uczącym (średnia 0, odchylenie 1), żeby x₁¹⁰ i x₁ miały porównywalną skalę.</p></details>
+    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x₁, x₂</dt><dd>cechy próbki (współrzędne punktu)</dd><dt>d</dt><dd>stopień wielomianu — suwak</dd><dt>x₁<sup>a</sup>x₂<sup>b</sup>, a + b ≤ d</dt><dd>cechy wielomianowe: wszystkie iloczyny potęg o łącznym stopniu najwyżej d, np. dla d = 2: x₁, x₂, x₁², x₁x₂, x₂²; ich liczba to (d + 1)(d + 2)/2 − 1</dd><dt>w<sub>ab</sub>, w₀</dt><dd>waga każdej cechy wielomianowej i obciążenie w₀ (wyraz wolny; to inne „obciążenie” niż w parze „obciążenie i wariancja” poniżej)</dd><dt>z</dt><dd>pobudzenie; model to regresja logistyczna p = σ(z), granica decyzyjna to z = 0 — prosta w nowych cechach, krzywa na płaszczyźnie</dd><dt>log-loss</dt><dd>koszt dopasowania do danych uczących (entropia krzyżowa)</dd><dt>λ/2 · Σ wⱼ²</dt><dd>kara L2 — nie obejmuje w₀; większa λ wymusza mniejsze wagi i gładszą granicę</dd></dl><p>Każda cecha wielomianowa jest przed uczeniem standaryzowana na zbiorze uczącym (średnia 0, odchylenie 1), żeby x₁¹⁰ i x₁ miały porównywalną skalę.</p></details>
   </section>
   <aside class="rail">
     <div class="panel"><h3>Dane</h3><div id="data"></div></div>
@@ -118,7 +129,7 @@ button.btn:disabled { cursor: not-allowed; }
   <section class="tryit panel">
     <h2>Spróbuj</h2>
     <ul>
-      <li>Przy λ bliskim zera zwiększaj stopień wielomianu od 1 do 10. Obserwuj obie krzywe dokładności: od którego stopnia trening i test zaczynają się rozjeżdżać?</li>
+      <li>Przy λ bliskim zera zwiększaj stopień wielomianu od 1 do 10. Obserwuj obie krzywe dokładności: od którego stopnia trening i test zaczynają się rozjeżdżać?<details class="ans"><summary>Wyjaśnienie</summary><p>Przy domyślnych danych (30 próbek) dokładność ucząca dochodzi do 100% już przy stopniu 2–3, a testowa przestaje rosnąć albo spada. Od tego miejsca rozjazd rośnie: model uczy się szumu w danych uczących. Dokładny stopień zależy od wylosowanej próby, więc warto sprawdzić kilka razy przyciskiem „Nowa próba ucząca”.</p></details></li>
       <li>Przy stopniu 10 zwiększaj λ. Granica się wygładza, a dokładność testowa wraca. Regularyzacja ogranicza złożoność bez zmiany liczby cech.</li>
       <li>Włącz „pokaż 10 modeli z innych prób”. Stopień 1 daje granice niemal identyczne (duże obciążenie, mała wariancja), stopień 10 — za każdym razem inną (duża wariancja).</li>
       <li>Zwiększ liczbę próbek uczących przy stopniu 10. Więcej danych też leczy przetrenowanie.</li>
@@ -753,6 +764,14 @@ function draw() {
 }
 P.onresize = draw;
 regen();
+</script>
+<script>
+// „Spróbuj” w ramce „Od czego zacząć”: przewiń do widocznej sekcji „Spróbuj” bieżącej zakładki
+document.querySelectorAll("a[data-try]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  const t = [...document.querySelectorAll(".tryit")].find(el => el.offsetParent !== null);
+  if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+}));
 </script>
 </body>
 </html>

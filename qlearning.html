@@ -90,6 +90,16 @@ details.sym p { margin: 8px 0 0; color: var(--muted); }
 .seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
 .seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
 button.btn:disabled { cursor: not-allowed; }
+
+/* objaśnienia dla studentów: „Od czego zacząć”, wyjaśnienia w „Spróbuj”, „dla dociekliwych” */
+.intro { margin: 0 28px 12px; padding: 10px 16px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 0.95rem; line-height: 1.5; max-width: 120ch; }
+.intro p { margin: 0; } .intro p + p { margin-top: 4px; }
+.intro a { color: var(--accent); }
+details.ans { margin: 2px 0 6px; }
+details.ans > summary { cursor: pointer; color: var(--accent); font-size: 0.88rem; font-weight: 600; }
+details.ans p { margin: 4px 0 0; padding: 6px 10px; background: var(--paper); border-radius: 6px; font-size: 0.93rem; }
+.xtra { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 10px; background: #FEF3C7; color: #92400E; font-size: 0.74rem; font-weight: 600; line-height: 1.6; vertical-align: 0.1em; white-space: nowrap; }
+@media (max-width: 900px) { .intro { margin: 0 14px 10px; } }
 </style>
 <style>
 .stage canvas.main#cv { aspect-ratio: auto; height: auto; max-height: none; cursor: pointer; }
@@ -101,8 +111,9 @@ button.btn:disabled { cursor: not-allowed; }
 <header class="top">
   <a class="crumb" href="index.html">Proces uczenia się w AI</a>
   <h1>Q-learning w świecie kratowym</h1>
-  <span class="lecture">wykład 7</span>
+  <span class="lecture">wykład 7 · lab 9</span>
 </header>
+<div class="intro"><p><b>O co chodzi.</b> Agent uczy się poruszać po planszy metodą prób i błędów. Po każdym ruchu poprawia jedną wartość Q(s, a), czyli oszacowanie, jak bardzo opłaca się wykonać działanie a w polu s.</p><p><b>Od czego zacząć.</b> Kliknij kilka razy „Krok” i czytaj wzór pod planszą. Potem kliknij „100 epizodów” i przełącz widok na politykę, żeby zobaczyć, jak strzałki układają się w drogę do celu. Kolejne zadania są w sekcji <a href="#" data-try>„Spróbuj”</a> pod rysunkiem.</p></div>
 
 <main class="app">
   <section class="stage">
@@ -118,12 +129,14 @@ button.btn:disabled { cursor: not-allowed; }
       <dt>a′ (SARSA)</dt><dd>działanie, które agent naprawdę wykona w s′ (także losowe); SARSA używa Q(s′, a′) zamiast max</dd>
       <dt>cel TD, δ</dt><dd>cel TD = r + γ·(wartość s′), błąd TD δ = cel − Q(s, a); po wejściu w pole końcowe cel = r</dd>
       <dt>α</dt><dd>współczynnik uczenia: jaką część błędu δ dodajemy do Q(s, a)</dd>
-      <dt>γ</dt><dd>dyskonto: nagroda za k kroków jest warta γ<sup>k</sup> nagrody natychmiastowej</dd>
+      <dt>γ</dt><dd>współczynnik dyskontowania: nagroda za k kroków jest warta γ<sup>k</sup> nagrody natychmiastowej</dd>
       <dt>ε</dt><dd>prawdopodobieństwo losowego działania (eksploracja); w przeciwnym razie działanie o największym Q</dd>
       <dt>V(s) = max Q(s, ·)</dt><dd>wartość stanu; V*, Q* — wartości optymalne z iteracji wartości (model znany)</dd>
       <dt>V<sub>k</sub>(s)</dt><dd>w iteracji wartości: najlepszy oczekiwany zwrot osiągalny w k krokach</dd>
+      <dt>epizod</dt><dd>jedna próba od pola startowego do pola końcowego (albo do limitu kroków); potem agent wraca na start, a tablica Q zostaje</dd>
+      <dt>zwrot G</dt><dd>suma nagród zebranych w epizodzie, każda pomnożona przez γ<sup>k</sup> (k — numer kroku); agent chce, by był jak największy</dd>
     </dl></details>
-    <details class="thm"><summary>Twierdzenie (Watkins, Dayan 1992)</summary>
+    <details class="thm"><summary>Twierdzenie (Watkins, Dayan 1992) <span class="xtra" title="Poza materiałem obowiązkowym — dla chętnych">dla dociekliwych</span></summary>
       <p>W skończonym procesie decyzyjnym Markowa tabelaryczny Q-learning zbiega do Q* z prawdopodobieństwem 1, jeśli <span class="lbl">każda para (s, a) jest odwiedzana nieskończenie wiele razy</span>, a współczynniki uczenia α<sub>t</sub> maleją tak, że Σα<sub>t</sub> = ∞ i Σα<sub>t</sub><sup>2</sup> &lt; ∞ (np. α<sub>t</sub> = 1/t).</p>
       <p>Na tej stronie α jest stałe, więc w świecie z poślizgiem wartości Q drgają wokół Q* zamiast się do nich zbliżać. Pierwszy warunek to wymóg eksploracji: przy ε = 0 część par nie jest odwiedzana i agent może utknąć na gorszej drodze.</p>
       <p class="src">C. J. C. H. Watkins, P. Dayan, „Q-learning”, Machine Learning 8 (1992) 279–292.</p>
@@ -426,7 +439,7 @@ const stepS = slider(WO, { label: "nagroda za krok", min: -2, max: 0, step: 0.01
 const slipS = slider(WO, { label: "poślizg (ruch w bok)", min: 0, max: 0.5, step: 0.05, value: 0.2, on: v => { W.slip = v; worldChanged(); } });
 const alg = seg(AL, [["q", "Q-learning"], ["sarsa", "SARSA"], ["vi", "iteracja wartości"]], "q", () => { stop(); if (alg.get() === "vi") { L.V = new Float64Array(nS()); L.k = 0; L.vLast = null; } sync(); draw(); }, "Algorytm");
 const alphaS = slider(AL, { label: "α — współczynnik uczenia", min: 0.01, max: 1, step: 0.01, value: 0.1, on: () => draw() });
-const gammaS = slider(AL, { label: "γ — dyskonto", min: 0.5, max: 1, step: 0.01, value: 1, on: v => { W.gamma = v; refreshStar(); if (alg.get() === "vi") { L.V = new Float64Array(nS()); L.k = 0; L.vLast = null; } draw(); } });
+const gammaS = slider(AL, { label: "γ — współczynnik dyskontowania", min: 0.5, max: 1, step: 0.01, value: 1, on: v => { W.gamma = v; refreshStar(); if (alg.get() === "vi") { L.V = new Float64Array(nS()); L.k = 0; L.vLast = null; } draw(); } });
 const epsS = slider(AL, { label: "ε — eksploracja", min: 0, max: 1, step: 0.01, value: 0.1, on: () => draw() });
 const decay = check(AL, "malejące ε: ε·0,99<sup>epizod</sup>, najmniej 0,01", false, () => draw());
 const viewHead = document.createElement("p"); viewHead.className = "hint"; viewHead.textContent = "Widok planszy:"; AL.appendChild(viewHead);
@@ -595,6 +608,14 @@ function chart() {
 function draw() { drawBoard(); EQ.innerHTML = eqHTML(); stats(); chart(); }
 
 loadPreset("w43"); sync();
+</script>
+<script>
+// „Spróbuj” w ramce „Od czego zacząć”: przewiń do widocznej sekcji „Spróbuj” bieżącej zakładki
+document.querySelectorAll("a[data-try]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  const t = [...document.querySelectorAll(".tryit")].find(el => el.offsetParent !== null);
+  if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+}));
 </script>
 </body>
 </html>

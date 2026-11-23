@@ -90,6 +90,16 @@ details.sym p { margin: 8px 0 0; color: var(--muted); }
 .seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
 .seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
 button.btn:disabled { cursor: not-allowed; }
+
+/* objaśnienia dla studentów: „Od czego zacząć”, wyjaśnienia w „Spróbuj”, „dla dociekliwych” */
+.intro { margin: 0 28px 12px; padding: 10px 16px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 0.95rem; line-height: 1.5; max-width: 120ch; }
+.intro p { margin: 0; } .intro p + p { margin-top: 4px; }
+.intro a { color: var(--accent); }
+details.ans { margin: 2px 0 6px; }
+details.ans > summary { cursor: pointer; color: var(--accent); font-size: 0.88rem; font-weight: 600; }
+details.ans p { margin: 4px 0 0; padding: 6px 10px; background: var(--paper); border-radius: 6px; font-size: 0.93rem; }
+.xtra { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 10px; background: #FEF3C7; color: #92400E; font-size: 0.74rem; font-weight: 600; line-height: 1.6; vertical-align: 0.1em; white-space: nowrap; }
+@media (max-width: 900px) { .intro { margin: 0 14px 10px; } }
 </style>
 <style>
 table.cm { border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 0.9rem; width: 100%; }
@@ -102,8 +112,9 @@ table.cm td.good { background: #E7F6EC; } table.cm td.badc { background: #FDECEC
 <header class="top">
   <a class="crumb" href="index.html">Proces uczenia się w AI</a>
   <h1>Regresja logistyczna</h1>
-  <span class="lecture">wykład 2</span>
+  <span class="lecture">wykład 2 · lab 3</span>
 </header>
+<div class="intro"><p><b>O co chodzi.</b> Regresja logistyczna zamienia ważoną sumę cech na prawdopodobieństwo klasy 1 za pomocą sigmoidy. Pierwsza zakładka: jedna cecha (godziny nauki) i interpretacja szans. Druga: dwie cechy, próg decyzyjny, czułość i swoistość.</p><p><b>Od czego zacząć.</b> W pierwszej zakładce poruszaj suwakami w₀ i w₁ i patrz, jak zmienia się krzywa oraz koszt. Potem kliknij „Dopasuj” i porównaj z własnym wynikiem. Kolejne zadania są w sekcji <a href="#" data-try>„Spróbuj”</a> pod rysunkiem.</p></div>
 <nav class="tabs" id="tabs"><button type="button">Sigmoida i szanse</button><button type="button">Klasyfikacja na płaszczyźnie</button></nav>
 
 <!-- ZAKŁADKA 1 -->
@@ -112,14 +123,14 @@ table.cm td.good { background: #E7F6EC; } table.cm td.badc { background: #FDECEC
     <canvas class="main" id="cv1" aria-label="Wykres sigmoidy dopasowanej do danych o godzinach nauki"></canvas>
     <div class="legend"><span><i style="background:var(--pos)"></i>zdał (y = 1)</span><span><i style="background:var(--neg)"></i>nie zdał (y = 0)</span><span><i style="background:var(--accent)"></i>P(y = 1 | x)</span><span><i style="background:#B9B6C8"></i>odległość od krzywej — źródło kosztu</span></div>
     <div class="equation" id="eq1"></div>
-    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x</dt><dd>cecha (tu: liczba godzin nauki)</dd><dt>w₀, w₁</dt><dd>wyraz wolny i nachylenie; z = w₀ + w₁x to pobudzenie</dd><dt>σ(z) = 1/(1 + e<sup>−z</sup>)</dt><dd>funkcja logistyczna (sigmoida): zamienia dowolną liczbę na prawdopodobieństwo z przedziału (0, 1); σ(0) = 0,5</dd><dt>P(y = 1 | x)</dt><dd>prawdopodobieństwo klasy 1 (zdania egzaminu) przy danym x</dd><dt>szansa P/(1 − P)</dt><dd>ile razy zdanie jest bardziej prawdopodobne niż niezdanie</dd><dt>logit = ln(P/(1 − P)) = z</dt><dd>logarytm szansy — w regresji logistycznej jest liniowy w x; wzrost x o 1 mnoży szansę przez e<sup>w₁</sup></dd><dt>J (wykres)</dt><dd>log-loss: −Σ [y ln P + (1 − y) ln(1 − P)] w funkcji w₁ przy ustalonym w₀</dd></dl></details>
+    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x</dt><dd>cecha (tu: liczba godzin nauki)</dd><dt>w₀, w₁</dt><dd>obciążenie i nachylenie; z = w₀ + w₁x to pobudzenie</dd><dt>σ(z) = 1/(1 + e<sup>−z</sup>)</dt><dd>funkcja logistyczna (sigmoida): zamienia dowolną liczbę na prawdopodobieństwo z przedziału (0, 1); σ(0) = 0,5</dd><dt>P(y = 1 | x)</dt><dd>prawdopodobieństwo klasy 1 (zdania egzaminu) przy danym x</dd><dt>szansa P/(1 − P)</dt><dd>ile razy zdanie jest bardziej prawdopodobne niż niezdanie</dd><dt>logit = ln(P/(1 − P)) = z</dt><dd>logarytm szansy — w regresji logistycznej jest liniowy w x; wzrost x o 1 mnoży szansę przez e<sup>w₁</sup></dd><dt>J (wykres)</dt><dd>log-loss: −Σ [y ln P + (1 − y) ln(1 − P)] w funkcji w₁ przy ustalonym w₀</dd></dl></details>
   </section>
   <aside class="rail">
     <div class="panel"><h3>Parametry modelu</h3><div id="par1"></div><div class="row" id="btn1"></div></div>
     <div class="panel"><h3>Szansa i iloraz szans</h3><div id="odds1"></div><dl class="stats" id="oddsStats"></dl></div>
     <div class="panel"><h3>Koszt</h3>
       <dl class="stats"><dt>koszt logistyczny J</dt><dd id="sJ1"></dd><dt>dokładność (próg 0,5)</dt><dd id="sA1"></dd></dl>
-      <p class="hint" style="margin-top:8px">J jako funkcja w<sub>1</sub> (przy obecnym w<sub>0</sub>)</p>
+      <p class="hint" style="margin-top:8px">J jako funkcja w<sub>1</sub> (przy obecnym w<sub>0</sub>). Oś pozioma to waga w<sub>1</sub>, a nie cecha x: każdy punkt krzywej to inny model.</p>
       <canvas class="mini" id="chart1"></canvas>
     </div>
   </aside>
@@ -127,10 +138,10 @@ table.cm td.good { background: #E7F6EC; } table.cm td.badc { background: #FDECEC
   <section class="tryit panel">
     <h2>Spróbuj</h2>
     <ul>
-      <li>Ręcznie dobierz w<sub>0</sub> i w<sub>1</sub> tak, by koszt był jak najmniejszy, a potem kliknij „Dopasuj”. Jak blisko byłeś?</li>
-      <li>Ustaw w<sub>1</sub> ujemne. Co się dzieje z krzywą i z kosztem? Co oznaczałoby to w języku „godzin nauki”?</li>
-      <li>Przesuń suwak x i sprawdź: o ile rośnie szansa zdania po dodaniu jednej godziny nauki? Czy zależy to od tego, od ilu godzin zaczynasz?</li>
-      <li>Wykres w panelu „Koszt” pokazuje J jako funkcję w<sub>1</sub>. Czy ma więcej niż jedno minimum? Porównaj z perceptronem, który nie miał żadnej gładkiej funkcji kosztu.</li>
+      <li>Ręcznie dobierz w<sub>0</sub> i w<sub>1</sub> tak, by koszt był jak najmniejszy, a potem kliknij „Dopasuj”. Jak blisko udało się podejść?<details class="ans"><summary>Wyjaśnienie</summary><p>„Dopasuj” szuka wag o najmniejszym koszcie logistycznym (największej wiarygodności). Ręcznie zwykle łatwo trafić w położenie przejścia (punkt P = 0,5 to x = −w₀/w₁), trudniej w stromość, czyli w₁ — koszt jest wtedy nieco większy niż po dopasowaniu.</p></details></li>
+      <li>Ustaw w<sub>1</sub> ujemne. Co się dzieje z krzywą i z kosztem? Co oznaczałoby to w języku „godzin nauki”?<details class="ans"><summary>Wyjaśnienie</summary><p>Krzywa odwraca się: P(zdania) maleje, gdy liczba godzin rośnie. Na tych danych koszt mocno rośnie, bo model myli się prawie wszędzie. W języku przykładu oznaczałoby to, że im dłużej się uczysz, tym mniejsza szansa zdania — dane przeczą takiemu modelowi.</p></details></li>
+      <li>Przesuń suwak x i sprawdź: o ile rośnie szansa zdania po dodaniu jednej godziny nauki? Czy zależy to od tego, od ilu godzin zaczynasz?<details class="ans"><summary>Wyjaśnienie</summary><p>Szansa P/(1 − P) mnoży się przez e<sup>w₁</sup> po każdej dodatkowej godzinie i nie zależy od tego, od ilu godzin zaczynamy (iloraz szans jest stały). Samo prawdopodobieństwo P rośnie natomiast nierówno: najszybciej w pobliżu P = 0,5, a bardzo wolno, gdy jest już bliskie 0 lub 1.</p></details></li>
+      <li>Wykres w panelu „Koszt” pokazuje J jako funkcję w<sub>1</sub>. Czy ma więcej niż jedno minimum? Porównaj z perceptronem, który nie miał żadnej gładkiej funkcji kosztu.<details class="ans"><summary>Wyjaśnienie</summary><p>Nie, ma jedno minimum: koszt logistyczny jest wypukły, więc gradient prosty zawsze trafi do najlepszych wag. Perceptron nie miał gładkiej funkcji kosztu, dlatego nie dało się dla niego zastosować gradientu.</p></details></li>
     </ul>
   </section>
 </main>
@@ -141,7 +152,7 @@ table.cm td.good { background: #E7F6EC; } table.cm td.badc { background: #FDECEC
     <canvas class="main" id="cv2" aria-label="Mapa prawdopodobieństwa regresji logistycznej na płaszczyźnie"></canvas>
     <div class="legend"><span><i style="background:var(--pos)"></i>y = 1</span><span><i style="background:var(--neg)"></i>y = 0</span><span><i style="background:var(--ink)"></i>granica P = próg</span><span><i style="background:#9C98B0"></i>poziomice P = 0,1 i 0,9</span></div>
     <div class="equation" id="eq2"></div>
-    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x₁, x₂</dt><dd>dwie cechy próbki</dd><dt>w₀, w₁, w₂</dt><dd>wyraz wolny i wagi; P(y = 1 | x) = σ(w₀ + w₁x₁ + w₂x₂)</dd><dt>e<sup>wⱼ</sup></dt><dd>iloraz szans: tyle razy rośnie szansa klasy 1, gdy xⱼ wzrośnie o 1 (przy stałej drugiej cesze)</dd><dt>‖w‖ = √(w₁² + w₂²)</dt><dd>im większa, tym bardziej strome przejście P od 0 do 1 wokół granicy</dd><dt>λ</dt><dd>siła regularyzacji L2: kara λ/2·(w₁² + w₂²) dodana do log-loss; większa λ — mniejsze wagi, łagodniejsze przejście</dd><dt>próg t</dt><dd>klasyfikujemy jako 1, gdy P ≥ t; granica to prosta z = ln(t/(1 − t))</dd><dt>TP, FN, FP, TN</dt><dd>prawdziwie pozytywne, fałszywie negatywne (przeoczone 1), fałszywie pozytywne (fałszywe alarmy), prawdziwie negatywne</dd><dt>czułość, swoistość</dt><dd>TP/(TP + FN) — jaka część klasy 1 została wykryta; TN/(TN + FP) — jaka część klasy 0 została poprawnie odrzucona</dd></dl></details>
+    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x₁, x₂</dt><dd>dwie cechy próbki</dd><dt>w₀, w₁, w₂</dt><dd>obciążenie i wagi; P(y = 1 | x) = σ(w₀ + w₁x₁ + w₂x₂)</dd><dt>e<sup>wⱼ</sup></dt><dd>iloraz szans: tyle razy rośnie szansa klasy 1, gdy xⱼ wzrośnie o 1 (przy stałej drugiej cesze)</dd><dt>‖w‖ = √(w₁² + w₂²)</dt><dd>im większa, tym bardziej strome przejście P od 0 do 1 wokół granicy</dd><dt>λ</dt><dd>siła regularyzacji L2: kara λ/2·(w₁² + w₂²) dodana do log-loss; większa λ — mniejsze wagi, łagodniejsze przejście</dd><dt>próg t</dt><dd>klasyfikujemy jako 1, gdy P ≥ t; granica to prosta z = ln(t/(1 − t))</dd><dt>TP, FN, FP, TN</dt><dd>prawdziwie pozytywne, fałszywie negatywne (przeoczone 1), fałszywie pozytywne (fałszywe alarmy), prawdziwie negatywne</dd><dt>czułość, swoistość</dt><dd>TP/(TP + FN) — jaka część klasy 1 została wykryta; TN/(TN + FP) — jaka część klasy 0 została poprawnie odrzucona</dd></dl></details>
   </section>
   <aside class="rail">
     <div class="panel"><h3>Dane</h3><div id="data2"></div></div>
@@ -156,8 +167,8 @@ table.cm td.good { background: #E7F6EC; } table.cm td.badc { background: #FDECEC
   <section class="tryit panel">
     <h2>Spróbuj</h2>
     <ul>
-      <li>Obniż próg do 0,2. Co dzieje się z czułością, a co ze swoistością? Kiedy w diagnostyce taki próg ma sens?</li>
-      <li>Zwiększ λ. Wagi maleją, a pas niepewności między poziomicami 0,1 i 0,9 robi się szerszy. Dlaczego?</li>
+      <li>Obniż próg do 0,2. Co dzieje się z czułością, a co ze swoistością? Kiedy w diagnostyce taki próg ma sens?<details class="ans"><summary>Wyjaśnienie</summary><p>Czułość rośnie (wykrywamy więcej przypadków klasy 1), a swoistość spada (więcej fałszywych alarmów). Niski próg ma sens w badaniach przesiewowych, gdy przeoczenie choroby kosztuje znacznie więcej niż dodatkowe badanie osoby zdrowej.</p></details></li>
+      <li>Zwiększ λ. Wagi maleją, a pas niepewności między poziomicami 0,1 i 0,9 robi się szerszy. Dlaczego?<details class="ans"><summary>Wyjaśnienie</summary><p>Szerokość pasa zależy od ‖w‖: P zmienia się od 0,1 do 0,9, gdy z rośnie o około 4,4, a to odpowiada odległości 4,4/‖w‖ na płaszczyźnie. Kara L2 zmniejsza wagi, więc ‖w‖ maleje i pas się poszerza — model jest mniej pewny swoich odpowiedzi.</p></details></li>
       <li>Wybierz dane rozdzielne i ustaw najmniejsze λ. Wagi rosną bardzo mocno — bez regularyzacji model chce być „nieskończenie pewny”.</li>
       <li>Dodaj kilka punktów daleko za granicą, po właściwej stronie. Granica prawie się nie rusza — ich koszt jest bliski zeru.</li>
     </ul>
@@ -741,7 +752,7 @@ const d1 = (() => { const R = ML.rng(11), out = []; for (let i = 0; i < 36; i++)
 const fit1 = ML.logregNewton(d1.map(p => [p.x]), d1.map(p => (p.c === 1 ? 1 : 0)), 1e-6);
 const par1 = $("#par1");
 const w1s = slider(par1, { label: "w₁ (nachylenie)", min: -3, max: 3, step: 0.01, value: 0.5, on: draw1 });
-const w0s = slider(par1, { label: "w₀ (wyraz wolny)", min: -15, max: 15, step: 0.05, value: -1, on: draw1 });
+const w0s = slider(par1, { label: "w₀ (obciążenie)", min: -15, max: 15, step: 0.05, value: -1, on: draw1 });
 let anim1 = null;
 button($("#btn1"), "Dopasuj (największa wiarygodność)", () => {
   cancelAnimationFrame(anim1); const a = [w0s.get(), w1s.get()], t0 = performance.now(), dur = REDUCED ? 1 : 700;
@@ -847,6 +858,14 @@ $("#cv2").addEventListener("pointerdown", e => {
 });
 P2.onresize = () => draw2();
 draw1(); make2();
+</script>
+<script>
+// „Spróbuj” w ramce „Od czego zacząć”: przewiń do widocznej sekcji „Spróbuj” bieżącej zakładki
+document.querySelectorAll("a[data-try]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  const t = [...document.querySelectorAll(".tryit")].find(el => el.offsetParent !== null);
+  if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+}));
 </script>
 </body>
 </html>
