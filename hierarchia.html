@@ -90,6 +90,16 @@ details.sym p { margin: 8px 0 0; color: var(--muted); }
 .seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
 .seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
 button.btn:disabled { cursor: not-allowed; }
+
+/* objaśnienia dla studentów: „Od czego zacząć”, wyjaśnienia w „Spróbuj”, „dla dociekliwych” */
+.intro { margin: 0 28px 12px; padding: 10px 16px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 0.95rem; line-height: 1.5; max-width: 120ch; }
+.intro p { margin: 0; } .intro p + p { margin-top: 4px; }
+.intro a { color: var(--accent); }
+details.ans { margin: 2px 0 6px; }
+details.ans > summary { cursor: pointer; color: var(--accent); font-size: 0.88rem; font-weight: 600; }
+details.ans p { margin: 4px 0 0; padding: 6px 10px; background: var(--paper); border-radius: 6px; font-size: 0.93rem; }
+.xtra { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 10px; background: #FEF3C7; color: #92400E; font-size: 0.74rem; font-weight: 600; line-height: 1.6; vertical-align: 0.1em; white-space: nowrap; }
+@media (max-width: 900px) { .intro { margin: 0 14px 10px; } }
 </style>
 <style>
 #dendro { display: block; width: 100%; height: 240px; touch-action: none; cursor: ns-resize; }
@@ -99,8 +109,9 @@ button.btn:disabled { cursor: not-allowed; }
 <header class="top">
   <a class="crumb" href="index.html">Proces uczenia się w AI</a>
   <h1>Grupowanie hierarchiczne</h1>
-  <span class="lecture">wykład 6</span>
+  <span class="lecture">wykład 6 · lab 8</span>
 </header>
+<div class="intro"><p><b>O co chodzi.</b> Grupowanie hierarchiczne zaczyna od każdego punktu jako osobnego klastra i w każdym kroku łączy dwa najbliższe. Dendrogram zapisuje kolejność połączeń, a cięcie go na wybranej wysokości daje klastry.</p><p><b>Od czego zacząć.</b> Klikaj „Połącz ▶” i patrz, jak na dendrogramie przybywa poziomych kresek. Potem przeciągnij linię cięcia na dendrogramie. Kolejne zadania są w sekcji <a href="#" data-try>„Spróbuj”</a> pod rysunkiem.</p></div>
 
 <main class="app" id="pane1">
   <section class="stage">
@@ -109,7 +120,7 @@ button.btn:disabled { cursor: not-allowed; }
     <p class="hint" style="margin:10px 0 4px">Dendrogram: wysokość poziomej kreski = odległość łączonych klastrów. Przeciągnij lub kliknij na dendrogramie, aby przesunąć linię cięcia.</p>
     <canvas id="dendro" aria-label="Dendrogram z linią cięcia"></canvas>
     <div class="equation" id="eq"></div>
-    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>A, B</dt><dd>dwa klastry łączone w bieżącym kroku</dd><dt>d(a, b)</dt><dd>odległość euklidesowa punktów a ∈ A i b ∈ B</dd><dt>pojedyncze</dt><dd>d(A, B) = min d(a, b) — najbliższa para punktów</dd><dt>pełne</dt><dd>d(A, B) = max d(a, b) — najdalsza para punktów</dd><dt>średnie</dt><dd>d(A, B) = średnia d(a, b) po wszystkich |A|·|B| parach</dd><dt>Warda</dt><dd>łączy parę, po której suma kwadratów odległości od centroidów (SSE) rośnie najmniej; wysokość h = √(2·ΔSSE), ΔSSE = |A|·|B| / (|A| + |B|) · ‖μ<sub>A</sub> − μ<sub>B</sub>‖² (tak jak w <code>scipy.cluster.hierarchy.linkage</code>)</dd><dt>h</dt><dd>wysokość połączenia na dendrogramie</dd><dt>cięcie</dt><dd>pozioma linia na wysokości h; klastry to gałęzie, które linia przecina</dd></dl></details>
+    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>A, B</dt><dd>dwa klastry łączone w bieżącym kroku</dd><dt>d(a, b)</dt><dd>odległość euklidesowa punktów a ∈ A i b ∈ B</dd><dt>pojedyncze</dt><dd>d(A, B) = min d(a, b) — najbliższa para punktów</dd><dt>pełne</dt><dd>d(A, B) = max d(a, b) — najdalsza para punktów</dd><dt>średnie</dt><dd>d(A, B) = średnia d(a, b) po wszystkich |A|·|B| parach</dd><dt>Warda</dt><dd>łączy parę, po której suma kwadratów odległości od centroidów (SSE) rośnie najmniej; wysokość h = √(2·ΔSSE), ΔSSE = |A|·|B| / (|A| + |B|) · ‖μ<sub>A</sub> − μ<sub>B</sub>‖² (tak jak w <code>scipy.cluster.hierarchy.linkage</code>)</dd><dt>h</dt><dd>wysokość połączenia na dendrogramie</dd><dt>cięcie</dt><dd>pozioma linia na wysokości h; klastry to gałęzie, które linia przecina</dd><dt>ARI</dt><dd>skorygowany indeks Randa: zgodność podziału z prawdziwymi grupami — 1 to podział identyczny, ok. 0 to zgodność przypadkowa. Prawdziwe grupy znamy tylko dlatego, że dane są wygenerowane; algorytm ich nie widzi, a w praktyce zwykle ich nie mamy</dd></dl></details>
   </section>
   <aside class="rail">
     <div class="panel"><h3>Dane</h3><div id="data"></div></div>
@@ -545,6 +556,14 @@ function draw() {
   cv.addEventListener("pointermove", e => down && at(e)); cv.addEventListener("pointerup", () => (down = false)); })();
 P.onresize = draw; new ResizeObserver(() => pts.length && draw()).observe($("#dendro"));
 make(); setK(3);
+</script>
+<script>
+// „Spróbuj” w ramce „Od czego zacząć”: przewiń do widocznej sekcji „Spróbuj” bieżącej zakładki
+document.querySelectorAll("a[data-try]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  const t = [...document.querySelectorAll(".tryit")].find(el => el.offsetParent !== null);
+  if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+}));
 </script>
 </body>
 </html>

@@ -90,6 +90,16 @@ details.sym p { margin: 8px 0 0; color: var(--muted); }
 .seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
 .seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
 button.btn:disabled { cursor: not-allowed; }
+
+/* objaśnienia dla studentów: „Od czego zacząć”, wyjaśnienia w „Spróbuj”, „dla dociekliwych” */
+.intro { margin: 0 28px 12px; padding: 10px 16px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 0.95rem; line-height: 1.5; max-width: 120ch; }
+.intro p { margin: 0; } .intro p + p { margin-top: 4px; }
+.intro a { color: var(--accent); }
+details.ans { margin: 2px 0 6px; }
+details.ans > summary { cursor: pointer; color: var(--accent); font-size: 0.88rem; font-weight: 600; }
+details.ans p { margin: 4px 0 0; padding: 6px 10px; background: var(--paper); border-radius: 6px; font-size: 0.93rem; }
+.xtra { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 10px; background: #FEF3C7; color: #92400E; font-size: 0.74rem; font-weight: 600; line-height: 1.6; vertical-align: 0.1em; white-space: nowrap; }
+@media (max-width: 900px) { .intro { margin: 0 14px 10px; } }
 </style>
 <style>
 #net { display: block; width: 100%; height: 270px; margin-top: 12px; border-top: 1px solid var(--line); cursor: pointer; }
@@ -125,14 +135,15 @@ table.hp button:hover { border-color: var(--accent); }
 <header class="top">
   <a class="crumb" href="index.html">Proces uczenia się w AI</a>
   <h1>Sieć neuronowa na płaszczyźnie</h1>
-  <span class="lecture">wykład 5</span>
+  <span class="lecture">wykład 5 · lab 6 i 7</span>
 </header>
+<div class="intro"><p><b>O co chodzi.</b> Sieć neuronowa z warstwami ukrytymi rysuje granice krzywe: każdy neuron ukryty to jedna prosta, a kolejne warstwy składają te proste w złożone kształty. Laboratorium 7 (sieci w PyTorch) odbywa się tylko na studiach stacjonarnych.</p><p><b>Od czego zacząć.</b> Wybierz dane XOR, kliknij „Start” i obserwuj granicę oraz koszt. Potem kliknij neuron na schemacie sieci, żeby zobaczyć, co „widzi”. Kolejne zadania są w sekcji <a href="#" data-try>„Spróbuj”</a> pod rysunkiem.</p></div>
 <main class="app">
   <section class="stage">
     <canvas class="main" id="cv" aria-label="Prawdopodobieństwo klasy +1 według sieci"></canvas>
     <div class="legend"><span><i style="background:var(--pos)"></i>klasa +1</span><span><i style="background:var(--neg)"></i>klasa −1</span><span><i style="background:var(--ink)"></i>granica p = 0,5</span><span>krawędzie sieci: <b style="color:var(--pos)">niebieska</b> — waga dodatnia, <b style="color:var(--neg)">czerwona</b> — ujemna, grubość ∝ |w|</span></div>
     <div class="equation" id="eq"></div>
-    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x = a⁽⁰⁾</dt><dd>wejście sieci (x₁, x₂)</dd><dt>W⁽ˡ⁾, b⁽ˡ⁾</dt><dd>macierz wag i wektor obciążeń warstwy l; wiersz macierzy to wagi jednego neuronu</dd><dt>W⁽ˡ⁾a⁽ˡ⁻¹⁾ + b⁽ˡ⁾ = z⁽ˡ⁾</dt><dd>pobudzenia neuronów warstwy l — kombinacje liniowe wyjść warstwy poprzedniej</dd><dt>tanh, ReLU, σ</dt><dd>funkcja aktywacji g stosowana do każdego pobudzenia: tanh(z) ∈ (−1, 1), ReLU(z) = max(0, z), σ(z) = 1/(1 + e<sup>−z</sup>)</dd><dt>a⁽ˡ⁾ = g(z⁽ˡ⁾)</dt><dd>aktywacje (wyjścia) neuronów warstwy l — miniatury na schemacie</dd><dt>softmax(z)<sub>k</sub> = e<sup>z<sub>k</sub></sup> / Σⱼ e<sup>zⱼ</sup></dt><dd>zamienia logity wyjść na prawdopodobieństwa klas sumujące się do 1</dd><dt>p, p<sub>y</sub></dt><dd>wektor prawdopodobieństw klas i prawdopodobieństwo prawdziwej klasy y</dd><dt>J = −(1/n) Σ log p<sub>y⁽ⁱ⁾</sub></dt><dd>entropia krzyżowa — średnia „niespodzianka” sieci na danych uczących</dd><dt>λ/2 · Σ w²</dt><dd>kara L2 za duże wagi</dd><dt>‖∂J/∂W⁽ˡ⁾‖</dt><dd>norma gradientu kosztu po wagach warstwy l — jak silnie warstwa jest poprawiana (wykres słupkowy)</dd></dl></details>
+    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x = a⁽⁰⁾</dt><dd>wejście sieci (x₁, x₂)</dd><dt>W⁽ˡ⁾, b⁽ˡ⁾</dt><dd>macierz wag i wektor obciążeń warstwy l; wiersz macierzy to wagi jednego neuronu</dd><dt>W⁽ˡ⁾a⁽ˡ⁻¹⁾ + b⁽ˡ⁾ = z⁽ˡ⁾</dt><dd>pobudzenia neuronów warstwy l — kombinacje liniowe wyjść warstwy poprzedniej</dd><dt>tanh, ReLU, σ</dt><dd>funkcja aktywacji g stosowana do każdego pobudzenia: tanh(z) ∈ (−1, 1), ReLU(z) = max(0, z), σ(z) = 1/(1 + e<sup>−z</sup>)</dd><dt>a⁽ˡ⁾ = g(z⁽ˡ⁾)</dt><dd>aktywacje (wyjścia) neuronów warstwy l — miniatury na schemacie</dd><dt>logity</dt><dd>pobudzenia z neuronów wyjściowych, zanim softmax zamieni je na prawdopodobieństwa; większy logit — bardziej prawdopodobna klasa</dd><dt>softmax(z)<sub>k</sub> = e<sup>z<sub>k</sub></sup> / Σⱼ e<sup>zⱼ</sup></dt><dd>zamienia logity wyjść na prawdopodobieństwa klas sumujące się do 1</dd><dt>p, p<sub>y</sub></dt><dd>wektor prawdopodobieństw klas i prawdopodobieństwo prawdziwej klasy y</dd><dt>J = −(1/n) Σ log p<sub>y⁽ⁱ⁾</sub></dt><dd>entropia krzyżowa — średnia „niespodzianka” sieci na danych uczących</dd><dt>λ/2 · Σ w²</dt><dd>kara L2 za duże wagi</dd><dt>‖∂J/∂W⁽ˡ⁾‖</dt><dd>norma gradientu kosztu po wagach warstwy l — jak silnie warstwa jest poprawiana (wykres słupkowy)</dd><dt>epoka</dt><dd>jedno przejście przez wszystkie próbki uczące (w minipaczkach)</dd><dt>hiperparametr</dt><dd>ustawienie wybierane przez nas, a nie uczone z danych: liczba warstw i neuronów, aktywacja, η, λ, rozmiar minipaczki</dd><dt>zbiór walidacyjny</dt><dd>część danych uczących odłożona do porównywania hiperparametrów; zbiór testowy zostaje nietknięty do końcowej oceny</dd></dl></details>
     <canvas id="net" aria-label="Schemat sieci; każdy neuron pokazuje swoją aktywację na płaszczyźnie"></canvas>
   </section>
   <aside class="rail">
@@ -1059,6 +1070,14 @@ function hpoDraw() {
 $("#hpoTbl").addEventListener("click", e => { const b = e.target.closest("button[data-i]"); if (!b) return; const r = hpo.results.find(r => r.i === +b.dataset.i); if (r) hpoApply(r); });
 new ResizeObserver(() => hpoDraw()).observe($("#hpoPlot"));
 make();
+</script>
+<script>
+// „Spróbuj” w ramce „Od czego zacząć”: przewiń do widocznej sekcji „Spróbuj” bieżącej zakładki
+document.querySelectorAll("a[data-try]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  const t = [...document.querySelectorAll(".tryit")].find(el => el.offsetParent !== null);
+  if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+}));
 </script>
 </body>
 </html>

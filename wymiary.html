@@ -91,6 +91,16 @@ details.sym p { margin: 8px 0 0; color: var(--muted); }
 .seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
 .seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
 button.btn:disabled { cursor: not-allowed; }
+
+/* objaśnienia dla studentów: „Od czego zacząć”, wyjaśnienia w „Spróbuj”, „dla dociekliwych” */
+.intro { margin: 0 28px 12px; padding: 10px 16px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 0.95rem; line-height: 1.5; max-width: 120ch; }
+.intro p { margin: 0; } .intro p + p { margin-top: 4px; }
+.intro a { color: var(--accent); }
+details.ans { margin: 2px 0 6px; }
+details.ans > summary { cursor: pointer; color: var(--accent); font-size: 0.88rem; font-weight: 600; }
+details.ans p { margin: 4px 0 0; padding: 6px 10px; background: var(--paper); border-radius: 6px; font-size: 0.93rem; }
+.xtra { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 10px; background: #FEF3C7; color: #92400E; font-size: 0.74rem; font-weight: 600; line-height: 1.6; vertical-align: 0.1em; white-space: nowrap; }
+@media (max-width: 900px) { .intro { margin: 0 14px 10px; } }
 </style>
 <style>
 canvas.big { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: 62vh; touch-action: none; border-radius: 6px; }
@@ -108,7 +118,8 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
   <h1>Wiele wymiarów</h1>
   <span class="lecture">wykłady 3–5</span>
 </header>
-<nav class="tabs" id="tabs"><button type="button">A. Geometria przestrzeni</button><button type="button">B. Dane i próbkowanie</button><button type="button">C. Uczenie</button><button type="button">D. Krajobraz funkcji kosztu</button></nav>
+<div class="intro"><p><b>O co chodzi.</b> Nasza intuicja pochodzi z dwóch i trzech wymiarów, a dane w uczeniu maszynowym mają ich dziesiątki lub tysiące. Strona pokazuje, co wtedy przestaje działać intuicyjnie i co to oznacza dla k-NN, drzew, SVM i sieci. Nie ma osobnego laboratorium.</p><p><b>Od czego zacząć.</b> W zakładce A wybierz „objętość kuli w sześcianie” i klikaj kolejno d = 1, 2, 3, 10. Zakładki A i B rozwijają klątwę wymiarowości z wykładu 4, a zakładki C i D są dla dociekliwych. Kolejne zadania są w sekcji <a href="#" data-try>„Spróbuj”</a> pod rysunkiem.</p></div>
+<nav class="tabs" id="tabs"><button type="button">A. Geometria przestrzeni</button><button type="button">B. Dane i próbkowanie</button><button type="button">C. Uczenie <span class="xtra" title="Poza materiałem obowiązkowym — dla chętnych">dla dociekliwych</span></button><button type="button">D. Krajobraz funkcji kosztu <span class="xtra" title="Poza materiałem obowiązkowym — dla chętnych">dla dociekliwych</span></button></nav>
 
 <!-- ================= A ================= -->
 <main class="app" id="paneA">
@@ -125,11 +136,11 @@ canvas.curve { display: block; width: 100%; height: 220px; margin-top: 10px; }
     <div class="panel"><h3>Parametry</h3><div id="aPar"></div><div class="progress"><i id="aProg"></i></div></div>
   </aside>
   <section class="tryit panel"><h2>Spróbuj</h2><ul>
-    <li><b>Objętość:</b> porównaj rysunki dla d = 1, 2, 3 z histogramami dla tych samych d — histogram to jedyny „rysunek”, jaki zostaje dla d &gt; 3. Przy d = 2 kula zajmuje 79% kwadratu, przy d = 3 — 52%, przy d = 10 — 0,25%, przy d = 20 — 2,5·10⁻⁸. Losowe punkty z sześcianu prawie zawsze leżą „w narożnikach”, daleko od środka.</li>
-    <li><b>Skorupa:</b> ustaw ε = 0,05 i obejrzyj rysunki dla d = 1, 2, 3 (5%, 9,75%, 14,3% punktów w skorupie), potem zwiększaj d. Przy d = 100 ponad 99% objętości kuli leży w cienkiej skorupie przy brzegu.</li>
-    <li><b>Bańka gaussowska:</b> zacznij od rysunków dla d = 1, 2, 3, potem przejdź do portretu promieniowego i zwiększaj d — chmura zamienia się w pierścień. Gęstość N(0, I) jest największa w zerze, a jednak przy d = 100 żadna z 2000 próbek nie leży bliżej niż ok. 8 od środka — wszystkie mają normę ≈ √d. Typowy punkt to nie punkt najbardziej prawdopodobny.</li>
-    <li><b>Ortogonalność:</b> przejdź przez d = 1, 2, 3 (rysunek), potem portret kątowy dla dużego d — losowe kierunki zbiegają się do 90°. W widoku „wiele wektorów” mapa cosinusów 150 kierunków z pstrokatej staje się jednolicie szara. Przy d = 1000 cosinus kąta między dwoma losowymi wektorami prawie nigdy nie przekracza 0,1 — losowe kierunki są prawie prostopadłe, więc przestrzeń mieści ogromnie wiele „prawie niezależnych” kierunków.</li>
-    <li><b>Odległości:</b> wszystkie odległości mierzymy w „razach odległości do najbliższego punktu”. Przy d = 2 najdalszy punkt jest dziesiątki razy dalej niż najbliższy, a w pasie do 1,1× leży zwykle 1 punkt. Przy d = 1000 (dane równomierne) najdalszy jest tylko ok. 1,1× dalej i w pasie leży prawie wszystko. Przesuwaj ε i patrz na liczbę punktów w pasie. Potem przełącz dane na „płaszczyznę 2D” albo „skupiska” — tam efekt nie występuje, bo założenie twierdzenia nie jest spełnione.</li>
+    <li><b>Objętość:</b> porównaj rysunki dla d = 1, 2, 3 z histogramami dla tych samych d — histogram to jedyny „rysunek”, jaki zostaje dla d &gt; 3. Przy d = 2 kula zajmuje 79% kwadratu, przy d = 3 — 52%, przy d = 10 — 0,25%, przy d = 20 — 2,5·10⁻⁸. Losowe punkty z sześcianu prawie zawsze leżą „w narożnikach”, daleko od środka. <i>Dla uczenia:</i> w wielu wymiarach prawie cała przestrzeń leży „w narożnikach”, daleko od środka, więc dane są zawsze rozrzedzone i każdego obszaru dotyczy niewiele próbek. To jedno z oblicz klątwy wymiarowości z wykładu 4.</li>
+    <li><b>Skorupa:</b> ustaw ε = 0,05 i obejrzyj rysunki dla d = 1, 2, 3 (5%, 9,75%, 14,3% punktów w skorupie), potem zwiększaj d. Przy d = 100 ponad 99% objętości kuli leży w cienkiej skorupie przy brzegu. <i>Dla uczenia:</i> prawie wszystkie punkty leżą blisko brzegu, a więc w pobliżu granicy obszaru — tam, gdzie model musi ekstrapolować, a nie uśredniać po sąsiadach.</li>
+    <li><b>Bańka gaussowska:</b> zacznij od rysunków dla d = 1, 2, 3, potem przejdź do portretu promieniowego i zwiększaj d — chmura zamienia się w pierścień. Gęstość N(0, I) jest największa w zerze, a jednak przy d = 100 żadna z 2000 próbek nie leży bliżej niż ok. 8 od środka — wszystkie mają normę ≈ √d. Typowy punkt to nie punkt najbardziej prawdopodobny. <i>Dla uczenia:</i> losowe wagi sieci i szum w danych mają w wielu wymiarach prawie tę samą długość, ≈ √d. Dlatego standaryzacja cech i skalowanie wag początkowych (np. o 1/√d) mają tak duże znaczenie.</li>
+    <li><b>Ortogonalność:</b> przejdź przez d = 1, 2, 3 (rysunek), potem portret kątowy dla dużego d — losowe kierunki zbiegają się do 90°. W widoku „wiele wektorów” mapa cosinusów 150 kierunków z pstrokatej staje się jednolicie szara. Przy d = 1000 cosinus kąta między dwoma losowymi wektorami prawie nigdy nie przekracza 0,1 — losowe kierunki są prawie prostopadłe, więc przestrzeń mieści ogromnie wiele „prawie niezależnych” kierunków. <i>Dla uczenia:</i> losowe cechy są prawie nieskorelowane, więc w dużej przestrzeni mieści się bardzo wiele niezależnych kierunków. Z tego korzystają m.in. funkcje jądra i szerokie warstwy sieci.</li>
+    <li><b>Odległości:</b> wszystkie odległości mierzymy w „razach odległości do najbliższego punktu”. Przy d = 2 najdalszy punkt jest dziesiątki razy dalej niż najbliższy, a w pasie do 1,1× leży zwykle 1 punkt. Przy d = 1000 (dane równomierne) najdalszy jest tylko ok. 1,1× dalej i w pasie leży prawie wszystko. Przesuwaj ε i patrz na liczbę punktów w pasie. Potem przełącz dane na „płaszczyznę 2D” albo „skupiska” — tam efekt nie występuje, bo założenie twierdzenia nie jest spełnione. <i>Dla uczenia:</i> gdy wszystkie punkty są prawie tak samo daleko, k-NN i grupowanie oparte na odległościach (k-średnich, hierarchiczne) tracą podstawę. Pomaga dobór cech albo redukcja wymiaru.</li>
   </ul></section>
 </main>
 
@@ -1812,6 +1823,14 @@ const drawers = [drawA, drawB, drawC, drawD];
 let curTab = 0;
 tabs($("#tabs"), [$("#paneA"), $("#paneB"), $("#paneC"), $("#paneD")], i => { curTab = i; setTimeout(() => drawers[i](), 0); });
 for (const id of ["#aMain", "#aCurve", "#bMain", "#bCurve", "#cMain", "#cCurve", "#dMain", "#dCurve"]) new ResizeObserver(debounce(() => drawers[curTab](), 80)).observe($(id));
+</script>
+<script>
+// „Spróbuj” w ramce „Od czego zacząć”: przewiń do widocznej sekcji „Spróbuj” bieżącej zakładki
+document.querySelectorAll("a[data-try]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  const t = [...document.querySelectorAll(".tryit")].find(el => el.offsetParent !== null);
+  if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+}));
 </script>
 </body>
 </html>

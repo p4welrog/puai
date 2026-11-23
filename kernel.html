@@ -90,6 +90,16 @@ details.sym p { margin: 8px 0 0; color: var(--muted); }
 .seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
 .seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
 button.btn:disabled { cursor: not-allowed; }
+
+/* objaśnienia dla studentów: „Od czego zacząć”, wyjaśnienia w „Spróbuj”, „dla dociekliwych” */
+.intro { margin: 0 28px 12px; padding: 10px 16px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 0.95rem; line-height: 1.5; max-width: 120ch; }
+.intro p { margin: 0; } .intro p + p { margin-top: 4px; }
+.intro a { color: var(--accent); }
+details.ans { margin: 2px 0 6px; }
+details.ans > summary { cursor: pointer; color: var(--accent); font-size: 0.88rem; font-weight: 600; }
+details.ans p { margin: 4px 0 0; padding: 6px 10px; background: var(--paper); border-radius: 6px; font-size: 0.93rem; }
+.xtra { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 10px; background: #FEF3C7; color: #92400E; font-size: 0.74rem; font-weight: 600; line-height: 1.6; vertical-align: 0.1em; white-space: nowrap; }
+@media (max-width: 900px) { .intro { margin: 0 14px 10px; } }
 </style>
 <style>
 .twin { display: grid; grid-template-columns: 1.35fr 1fr; gap: 12px; }
@@ -103,8 +113,9 @@ button.btn:disabled { cursor: not-allowed; }
 <header class="top">
   <a class="crumb" href="index.html">Proces uczenia się w AI</a>
   <h1>Funkcje jądra i problemy nieliniowe</h1>
-  <span class="lecture">wykład 3</span>
+  <span class="lecture">wykład 3 · lab 4</span>
 </header>
+<div class="intro"><p><b>O co chodzi.</b> Gdy klas nie da się oddzielić prostą (XOR, okręgi, spirale), SVM z funkcją jądra wyznacza granicę krzywą. Zakładka „Mapowanie do trzech wymiarów” pokazuje, skąd to się bierze: po dopisaniu trzeciej cechy dane da się rozdzielić płaszczyzną.</p><p><b>Od czego zacząć.</b> Zacznij od zakładki „Mapowanie do trzech wymiarów” i przesuwaj suwak progu c. Potem w pierwszej zakładce porównaj na danych XOR jądro liniowe, wielomianowe i RBF. Kolejne zadania są w sekcji <a href="#" data-try>„Spróbuj”</a> pod rysunkiem.</p></div>
 <nav class="tabs" id="tabs"><button type="button">SVM z funkcją jądra</button><button type="button">Mapowanie do trzech wymiarów</button></nav>
 
 <!-- ZAKŁADKA 1 -->
@@ -113,7 +124,7 @@ button.btn:disabled { cursor: not-allowed; }
     <canvas class="main" id="cv" aria-label="Granica decyzyjna SVM z funkcją jądra"></canvas>
     <div class="legend"><span><i style="background:var(--pos)"></i>klasa +1</span><span><i style="background:var(--neg)"></i>klasa −1</span><span><i style="background:var(--ink)"></i>f(x) = 0</span><span><i style="background:#9C98B0"></i>f(x) = ±1</span><span><i style="background:var(--accent)"></i>wektory nośne</span></div>
     <div class="equation" id="eq"></div>
-    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x, x⁽ⁱ⁾</dt><dd>punkt, który klasyfikujemy, i i-ta próbka ucząca</dd><dt>SV</dt><dd>zbiór wektorów nośnych — próbek z α<sub>i</sub> > 0</dd><dt>α<sub>i</sub></dt><dd>mnożnik z problemu dualnego, 0 ≤ α<sub>i</sub> ≤ C: jak mocno próbka i wpływa na decyzję</dd><dt>y⁽ⁱ⁾</dt><dd>etykieta próbki (+1/−1) — decyduje, czy próbka „przyciąga”, czy „odpycha” wartość f(x)</dd><dt>κ(x, z)</dt><dd>funkcja jądra — iloczyn skalarny φ(x)·φ(z) w (niewidocznej) przestrzeni cech; nie trzeba liczyć φ</dd><dt>xᵀz</dt><dd>zwykły iloczyn skalarny x₁z₁ + x₂z₂</dd><dt>d</dt><dd>stopień jądra wielomianowego</dd><dt>γ</dt><dd>szerokość jądra RBF: duże γ — wąskie „góreczki” wokół każdej próbki (ryzyko przeuczenia), małe γ — gładka granica</dd><dt>‖x − z‖²</dt><dd>kwadrat odległości euklidesowej punktów</dd><dt>C</dt><dd>kara za naruszenia marginesu (jak w liniowym SVM)</dd><dt>w₀</dt><dd>obciążenie</dd></dl></details>
+    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x, x⁽ⁱ⁾</dt><dd>punkt, który klasyfikujemy, i i-ta próbka ucząca</dd><dt>SV</dt><dd>zbiór wektorów nośnych — próbek z α<sub>i</sub> > 0</dd><dt>α<sub>i</sub></dt><dd>mnożnik z problemu dualnego, 0 ≤ α<sub>i</sub> ≤ C: jak mocno próbka i wpływa na decyzję</dd><dt>y⁽ⁱ⁾</dt><dd>etykieta próbki (+1/−1) — decyduje, czy próbka „przyciąga”, czy „odpycha” wartość f(x)</dd><dt>κ(x, z)</dt><dd>funkcja jądra — iloczyn skalarny φ(x)·φ(z) w (niewidocznej) przestrzeni cech; nie trzeba liczyć φ</dd><dt>xᵀz</dt><dd>zwykły iloczyn skalarny x₁z₁ + x₂z₂</dd><dt>d</dt><dd>stopień jądra wielomianowego</dd><dt>γ</dt><dd>szerokość jądra RBF: duże γ — wąskie „góreczki” wokół każdej próbki (ryzyko przetrenowania), małe γ — gładka granica</dd><dt>‖x − z‖²</dt><dd>kwadrat odległości euklidesowej punktów</dd><dt>C</dt><dd>kara za naruszenia marginesu (jak w liniowym SVM)</dd><dt>w₀</dt><dd>obciążenie</dd></dl></details>
   </section>
   <aside class="rail">
     <div class="panel"><h3>Dane</h3><div id="data"></div></div>
@@ -127,10 +138,10 @@ button.btn:disabled { cursor: not-allowed; }
   <section class="tryit panel">
     <h2>Spróbuj</h2>
     <ul>
-      <li>Na danych XOR porównaj jądro liniowe, wielomianowe stopnia 2 i RBF. Które jądro zawiera cechę x<sub>1</sub>x<sub>2</sub>?</li>
+      <li>Na danych XOR porównaj jądro liniowe, wielomianowe stopnia 2 i RBF. Które jądro zawiera cechę x<sub>1</sub>x<sub>2</sub>?<details class="ans"><summary>Wyjaśnienie</summary><p>Jądro wielomianowe stopnia 2: po rozpisaniu (½·xᵀz + 1)² pojawia się składnik z iloczynem x₁x₂, który rozdziela ćwiartki. Jądro liniowe go nie ma i na XOR nie przekracza ok. 50% (zgadywanie). RBF też sobie radzi, bo odpowiada nieskończenie wielu cechom, w tym wszystkim iloczynom.</p></details></li>
       <li>Przy jądrze RBF zwiększaj γ od 0,1 do 100. Dokładność uczenia rośnie do 100%, a testowa w pewnym momencie spada — to przetrenowanie.</li>
       <li>Włącz podgląd κ(x, ·) i najedź na punkt. Duże γ oznacza „wąski” zasięg podobieństwa — każda próbka wpływa tylko na swoje bliskie otoczenie.</li>
-      <li>Na spiralach znajdź parę γ i C, która daje ponad 95% na zbiorze testowym. Ile wektorów nośnych potrzeba?</li>
+      <li>Na spiralach znajdź parę γ i C, która daje ponad 95% na zbiorze testowym. Ile wektorów nośnych potrzeba?<details class="ans"><summary>Wyjaśnienie</summary><p>Na tych danych wystarcza już RBF z γ ≈ 1 i C ≈ 10. Wektorów nośnych jest wtedy około trzydziestu ze 140 próbek, czyli wyraźnie więcej niż przy prostszych danych, bo granica jest bardziej skomplikowana. Przy dużym γ wektorem nośnym staje się prawie każda próbka, a dokładność testowa nie rośnie.</p></details></li>
     </ul>
   </section>
 </main>
@@ -831,6 +842,14 @@ cv3.addEventListener("pointermove", e => { if (!rot) return; yaw = rot.yaw + (e.
 cv3.addEventListener("pointerup", () => { rot = null; cv3.style.cursor = "grab"; });
 new ResizeObserver(() => draw3()).observe(cv3); P2.onresize = draw3;
 data3 = ML.gen.circles(120, 3, 0.15); bestC();
+</script>
+<script>
+// „Spróbuj” w ramce „Od czego zacząć”: przewiń do widocznej sekcji „Spróbuj” bieżącej zakładki
+document.querySelectorAll("a[data-try]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  const t = [...document.querySelectorAll(".tryit")].find(el => el.offsetParent !== null);
+  if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+}));
 </script>
 </body>
 </html>

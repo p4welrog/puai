@@ -90,24 +90,35 @@ details.sym p { margin: 8px 0 0; color: var(--muted); }
 .seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
 .seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
 button.btn:disabled { cursor: not-allowed; }
+
+/* objaśnienia dla studentów: „Od czego zacząć”, wyjaśnienia w „Spróbuj”, „dla dociekliwych” */
+.intro { margin: 0 28px 12px; padding: 10px 16px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 0.95rem; line-height: 1.5; max-width: 120ch; }
+.intro p { margin: 0; } .intro p + p { margin-top: 4px; }
+.intro a { color: var(--accent); }
+details.ans { margin: 2px 0 6px; }
+details.ans > summary { cursor: pointer; color: var(--accent); font-size: 0.88rem; font-weight: 600; }
+details.ans p { margin: 4px 0 0; padding: 6px 10px; background: var(--paper); border-radius: 6px; font-size: 0.93rem; }
+.xtra { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 10px; background: #FEF3C7; color: #92400E; font-size: 0.74rem; font-weight: 600; line-height: 1.6; vertical-align: 0.1em; white-space: nowrap; }
+@media (max-width: 900px) { .intro { margin: 0 14px 10px; } }
 </style>
 </head>
 <body>
 <header class="top">
   <a class="crumb" href="index.html">Proces uczenia się w AI</a>
   <h1>Spadek wzdłuż gradientu</h1>
-  <span class="lecture">wykład 2</span>
+  <span class="lecture">wykład 2 · lab 2</span>
 </header>
+<div class="intro"><p><b>O co chodzi.</b> Adaline uczy się, schodząc po funkcji kosztu krokami w kierunku przeciwnym do gradientu. <b>Uwaga: rysunek pokazuje przestrzeń wag, a nie dane.</b> Każdy punkt to jeden model (para wag w₁, w₂), a poziomice łączą modele o jednakowym koszcie.</p><p><b>Od czego zacząć.</b> Kliknij „Start” i obserwuj, jak ścieżka wag schodzi do zielonego minimum. Potem przełącz cechy na „standaryzowane” i porównaj kształt poziomic i liczbę epok. Kolejne zadania są w sekcji <a href="#" data-try>„Spróbuj”</a> pod rysunkiem.</p></div>
 <main class="app">
   <section class="stage">
     <canvas class="main" id="cv" aria-label="Poziomice funkcji kosztu w przestrzeni wag i ścieżka optymalizacji"></canvas>
-    <div class="legend"><span><i style="background:var(--ink)"></i>punkt startowy</span><span><i style="background:var(--accent)"></i>ścieżka wag</span><span><i style="background:var(--ok)"></i>minimum w*</span></div>
+    <div class="legend"><span><i style="background:var(--ink)"></i>punkt startowy</span><span><i style="background:var(--accent)"></i>ścieżka wag</span><span><i style="background:var(--ok)"></i>minimum w*</span><span>osie: wagi w₁, w₂ (nie cechy) — każdy punkt to jeden model</span></div>
     <div class="equation" id="eq"></div>
-    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>(x₁⁽ⁱ⁾, x₂⁽ⁱ⁾), y⁽ⁱ⁾</dt><dd>cechy i wartość docelowa i-tej próbki; indeks w nawiasie numeruje próbki (to nie potęga)</dd><dt>w = (w₁, w₂)</dt><dd>wagi modelu — współrzędne na rysunku; model nie ma obciążenia, żeby koszt dało się narysować w 2D</dd><dt>ŷ⁽ⁱ⁾ = w₁x₁⁽ⁱ⁾ + w₂x₂⁽ⁱ⁾</dt><dd>odpowiedź liniowa ADALINE (bez progu)</dd><dt>J(w)</dt><dd>funkcja kosztu: połowa sumy kwadratów błędów; ½ upraszcza pochodną. Poziomice łączą punkty o równym J, zielona kropka to minimum w*</dd><dt>∇J(w) = −Σ (y⁽ⁱ⁾ − ŷ⁽ⁱ⁾) x⁽ⁱ⁾</dt><dd>gradient kosztu — kierunek najszybszego wzrostu J; krok idzie w przeciwną stronę</dd><dt>η</dt><dd>współczynnik uczenia — długość kroku</dd><dt>Σ w aktualizacji</dt><dd>po wszystkich próbkach (wsadowo), po jednej losowej (SGD) albo po paczce kilku próbek (minipaczki)</dd><dt>λ_max, κ</dt><dd>największa wartość własna macierzy Σ x⁽ⁱ⁾x⁽ⁱ⁾ᵀ (krzywizna najbardziej stromego kierunku; zbieżność wsadowa wymaga η < 2/λ_max) i wskaźnik uwarunkowania λ_max/λ_min — im większy, tym bardziej wydłużone poziomice</dd></dl></details>
+    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>(x₁⁽ⁱ⁾, x₂⁽ⁱ⁾), y⁽ⁱ⁾</dt><dd>cechy i wartość docelowa i-tej próbki; indeks w nawiasie numeruje próbki (to nie potęga)</dd><dt>w = (w₁, w₂)</dt><dd>wagi modelu — współrzędne na rysunku; model nie ma obciążenia, żeby koszt dało się narysować w 2D</dd><dt>ŷ⁽ⁱ⁾ = w₁x₁⁽ⁱ⁾ + w₂x₂⁽ⁱ⁾</dt><dd>odpowiedź liniowa ADALINE (bez progu)</dd><dt>J(w)</dt><dd>funkcja kosztu: połowa sumy kwadratów błędów; ½ upraszcza pochodną. Poziomice łączą punkty o równym J, zielona kropka to minimum w*</dd><dt>∇J(w) = −Σ (y⁽ⁱ⁾ − ŷ⁽ⁱ⁾) x⁽ⁱ⁾</dt><dd>gradient kosztu — kierunek najszybszego wzrostu J; krok idzie w przeciwną stronę</dd><dt>η</dt><dd>współczynnik uczenia — długość kroku</dd><dt>epoka</dt><dd>jedno przejście przez wszystkie próbki: wsadowo to jedna aktualizacja wag, w SGD — n aktualizacji</dd><dt>Σ w aktualizacji</dt><dd>po wszystkich próbkach (wsadowo), po jednej losowej (SGD) albo po paczce kilku próbek (minipaczki)</dd><dt>λ_max, κ <span class="xtra" title="Poza materiałem obowiązkowym — dla chętnych">dla dociekliwych</span></dt><dd>największa wartość własna macierzy Σ x⁽ⁱ⁾x⁽ⁱ⁾ᵀ (krzywizna najbardziej stromego kierunku; zbieżność wsadowa wymaga η < 2/λ_max) i wskaźnik uwarunkowania λ_max/λ_min — im większy, tym bardziej wydłużone poziomice. W praktyce wystarczy wiedzieć, że duże κ oznacza wolne uczenie, a η powyżej 2/λ_max — rozbieżność</dd></dl></details>
   </section>
   <aside class="rail">
     <div class="panel"><h3>Cechy</h3><div id="feat"></div>
-      <p class="hint">Model bez wyrazu wolnego, ŷ = w<sub>1</sub>x<sub>1</sub> + w<sub>2</sub>x<sub>2</sub>, żeby funkcję kosztu dało się narysować na płaszczyźnie wag.</p></div>
+      <p class="hint">Model bez obciążenia w₀, ŷ = w<sub>1</sub>x<sub>1</sub> + w<sub>2</sub>x<sub>2</sub>, żeby funkcję kosztu dało się narysować na płaszczyźnie wag.</p></div>
     <div class="panel"><h3>Metoda</h3><div id="meth"></div><div class="row" id="btns"></div></div>
     <div class="panel"><h3>Przebieg</h3>
       <div class="status" id="status">Kliknij „Start”.</div>
@@ -129,8 +140,8 @@ button.btn:disabled { cursor: not-allowed; }
     <ul>
       <li>Na surowych cechach znajdź największe η, przy którym metoda wsadowa jeszcze się zbiega. Porównaj je z granicą 2/λ<sub>max</sub> w panelu obok.</li>
       <li>Włącz standaryzację. Jak zmienia się kształt poziomic i liczba epok potrzebnych do minimum? Spójrz na wskaźnik uwarunkowania κ.</li>
-      <li>Przy tym samym η porównaj ścieżkę metody wsadowej, SGD i minipaczek. Która dochodzi do minimum, a która krąży w jego pobliżu?</li>
-      <li>Kliknij płaszczyznę, aby zacząć z innego miejsca. Czy funkcja wypukła ma minima lokalne?</li>
+      <li>Przy tym samym η porównaj ścieżkę metody wsadowej, SGD i minipaczek. Która dochodzi do minimum, a która krąży w jego pobliżu?<details class="ans"><summary>Wyjaśnienie</summary><p>Metoda wsadowa idzie gładko i dochodzi do minimum, bo w każdym kroku używa dokładnego gradientu ze wszystkich próbek. SGD liczy gradient z jednej losowej próbki, więc ścieżka drga i przy stałym η krąży w pobliżu minimum, nie zatrzymując się w nim (pomaga „malejące η”). Minipaczki są pośrodku: gradient z kilku próbek jest mniej zaszumiony, więc ścieżka jest gładsza niż w SGD.</p></details></li>
+      <li>Kliknij płaszczyznę, aby zacząć z innego miejsca. Czy funkcja wypukła ma minima lokalne?<details class="ans"><summary>Wyjaśnienie</summary><p>Nie. Koszt Adaline (suma kwadratów błędów) jest funkcją wypukłą — jedną „misą” z jednym minimum. Z każdego punktu startowego ścieżka trafia do tego samego w*. Minima lokalne pojawią się dopiero w sieciach wielowarstwowych (wykład 5).</p></details></li>
     </ul>
   </section>
 </main>
@@ -801,6 +812,14 @@ function draw() {
 $("#cv").addEventListener("pointerdown", e => { stop(); const q = P.evt(e); S.start = [q.x, q.y]; reset(); });
 P.onresize = draw;
 raw = genRaw(seed); setup();
+</script>
+<script>
+// „Spróbuj” w ramce „Od czego zacząć”: przewiń do widocznej sekcji „Spróbuj” bieżącej zakładki
+document.querySelectorAll("a[data-try]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  const t = [...document.querySelectorAll(".tryit")].find(el => el.offsetParent !== null);
+  if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+}));
 </script>
 </body>
 </html>

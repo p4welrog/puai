@@ -90,20 +90,31 @@ details.sym p { margin: 8px 0 0; color: var(--muted); }
 .seg button:disabled { color: #B3B0C2; background: repeating-linear-gradient(135deg, #F7F6FA 0 6px, #EFEDF5 6px 12px); cursor: not-allowed; }
 .seg button:disabled[aria-pressed=true] { background: #8E8AA3; color: #fff; }
 button.btn:disabled { cursor: not-allowed; }
+
+/* objaśnienia dla studentów: „Od czego zacząć”, wyjaśnienia w „Spróbuj”, „dla dociekliwych” */
+.intro { margin: 0 28px 12px; padding: 10px 16px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 0.95rem; line-height: 1.5; max-width: 120ch; }
+.intro p { margin: 0; } .intro p + p { margin-top: 4px; }
+.intro a { color: var(--accent); }
+details.ans { margin: 2px 0 6px; }
+details.ans > summary { cursor: pointer; color: var(--accent); font-size: 0.88rem; font-weight: 600; }
+details.ans p { margin: 4px 0 0; padding: 6px 10px; background: var(--paper); border-radius: 6px; font-size: 0.93rem; }
+.xtra { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 10px; background: #FEF3C7; color: #92400E; font-size: 0.74rem; font-weight: 600; line-height: 1.6; vertical-align: 0.1em; white-space: nowrap; }
+@media (max-width: 900px) { .intro { margin: 0 14px 10px; } }
 </style>
 </head>
 <body>
 <header class="top">
   <a class="crumb" href="index.html">Proces uczenia się w AI</a>
   <h1>Maszyna wektorów nośnych: margines</h1>
-  <span class="lecture">wykład 3</span>
+  <span class="lecture">wykład 3 · lab 4</span>
 </header>
+<div class="intro"><p><b>O co chodzi.</b> SVM wybiera spośród wszystkich prostych rozdzielających klasy tę z najszerszym pasem (marginesem). Granicę wyznaczają tylko punkty leżące najbliżej niej, czyli wektory nośne (zakreślone kółkiem).</p><p><b>Od czego zacząć.</b> Przeciągnij myszą punkt leżący daleko od granicy, a potem zakreślony wektor nośny, i porównaj, co dzieje się z granicą. Następnie zmieniaj parametr C. Kolejne zadania są w sekcji <a href="#" data-try>„Spróbuj”</a> pod rysunkiem.</p></div>
 <main class="app">
   <section class="stage">
     <canvas class="main" id="cv" aria-label="Liniowy SVM: granica, margines i wektory nośne"></canvas>
-    <div class="legend"><span><i style="background:var(--ink)"></i>granica f(x) = 0</span><span><i style="background:#9C98B0"></i>płaszczyzny f(x) = ±1</span><span><i style="background:var(--accent)"></i>wektory nośne</span><span><i style="background:var(--warn)"></i>naruszenia marginesu ξ</span><span id="lgLR" hidden><i style="background:var(--ok)"></i>regresja logistyczna</span></div>
+    <div class="legend"><span><i style="background:var(--ink)"></i>granica f(x) = 0</span><span><i style="background:#9C98B0"></i>płaszczyzny f(x) = ±1 (tu: proste)</span><span><i style="background:var(--accent)"></i>wektory nośne</span><span><i style="background:var(--warn)"></i>naruszenia marginesu ξ</span><span id="lgLR" hidden><i style="background:var(--ok)"></i>regresja logistyczna</span></div>
     <div class="equation" id="eq"></div>
-    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x = (x₁, x₂), y</dt><dd>cechy próbki i jej etykieta (+1 albo −1)</dd><dt>f(x)</dt><dd>funkcja decyzyjna; granica to f(x) = 0, marginesy (linie przerywane) to f(x) = ±1</dd><dt>w = (w₁, w₂), w₀</dt><dd>wagi i obciążenie; szerokość pasa między marginesami wynosi 2/‖w‖, więc mała ‖w‖ to szeroki margines</dd><dt>ξ⁽ⁱ⁾ = max(0, 1 − y⁽ⁱ⁾f(x⁽ⁱ⁾))</dt><dd>zmienna luźna (strata zawiasowa): 0 dla punktu poza marginesem po właściwej stronie, między 0 a 1 w pasie marginesu, powyżej 1 po złej stronie granicy</dd><dt>C</dt><dd>kara za naruszenia: duże C — wąski margines i mało naruszeń, małe C — szeroki margines kosztem błędów</dd><dt>α<sub>i</sub></dt><dd>mnożniki z problemu dualnego (0 ≤ α<sub>i</sub> ≤ C); niezerowe tylko dla wektorów nośnych</dd><dt>wektory nośne</dt><dd>punkty z y·f(x) ≤ 1 — na marginesie, w pasie albo po złej stronie; tylko one wyznaczają w</dd></dl></details>
+    <details class="sym" open><summary>Oznaczenia we wzorze</summary><dl><dt>x = (x₁, x₂), y</dt><dd>cechy próbki i jej etykieta (+1 albo −1)</dd><dt>f(x)</dt><dd>funkcja decyzyjna; granica to f(x) = 0, marginesy (linie przerywane) to f(x) = ±1</dd><dt>w = (w₁, w₂), w₀</dt><dd>wagi i obciążenie; szerokość pasa między marginesami wynosi 2/‖w‖, więc mała ‖w‖ to szeroki margines</dd><dt>ξ⁽ⁱ⁾ = max(0, 1 − y⁽ⁱ⁾f(x⁽ⁱ⁾))</dt><dd>zmienna uzupełniająca (ang. <i>slack</i>; strata zawiasowa): 0 dla punktu poza marginesem po właściwej stronie, między 0 a 1 w pasie marginesu, powyżej 1 po złej stronie granicy</dd><dt>C</dt><dd>kara za naruszenia: duże C — wąski margines i mało naruszeń, małe C — szeroki margines kosztem błędów</dd><dt>α<sub>i</sub></dt><dd>mnożniki z problemu dualnego (0 ≤ α<sub>i</sub> ≤ C); niezerowe tylko dla wektorów nośnych</dd><dt>wektory nośne</dt><dd>punkty z y·f(x) ≤ 1 — na marginesie, w pasie albo po złej stronie; tylko one wyznaczają w</dd></dl></details>
   </section>
   <aside class="rail">
     <div class="panel"><h3>Dane</h3><div id="data"></div></div>
@@ -765,6 +776,14 @@ $("#cv").addEventListener("pointermove", e => { if (drag < 0) return; const q = 
 $("#cv").addEventListener("pointerup", () => { drag = -1; });
 P.onresize = draw;
 make();
+</script>
+<script>
+// „Spróbuj” w ramce „Od czego zacząć”: przewiń do widocznej sekcji „Spróbuj” bieżącej zakładki
+document.querySelectorAll("a[data-try]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  const t = [...document.querySelectorAll(".tryit")].find(el => el.offsetParent !== null);
+  if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+}));
 </script>
 </body>
 </html>
