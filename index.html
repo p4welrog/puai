@@ -109,7 +109,7 @@ footer { margin-top: 34px; color: var(--muted); font-size: 0.86rem; max-width: 7
 <body>
 <div class="wrap">
   <h1>Laboratorium uczenia maszynowego</h1>
-  <p class="lead">Piętnaście interaktywnych modeli do wykładów z przedmiotu „Proces uczenia się w AI”. Każdy działa bez internetu, w samej przeglądarce. Zmieniaj parametry, dodawaj i przesuwaj punkty, obserwuj, co robi algorytm.</p>
+  <p class="lead">Szesnaście interaktywnych modeli do wykładów z przedmiotu „Proces uczenia się w AI”. Każdy działa bez internetu, w samej przeglądarce. Zmieniaj parametry, dodawaj i przesuwaj punkty, obserwuj, co robi algorytm.</p>
 
   <section class="lecture-block"><h2>Wykład 1</h2><div class="list">
     <a class="item" href="perceptron.html"><canvas data-thumb="perceptron"></canvas><div><strong>Perceptron krok po kroku</strong><span>Reguła uczenia na żywo: każda próbka, każda aktualizacja wag, zbieżność i jej brak.</span></div></a>
@@ -143,11 +143,15 @@ footer { margin-top: 34px; color: var(--muted); font-size: 0.86rem; max-width: 7
     <a class="item" href="hierarchia.html"><canvas data-thumb="hierarchia"></canvas><div><strong>Grupowanie hierarchiczne</strong><span>Łączenie najbliższych klastrów, dendrogram i jego cięcie, metody łączenia: pojedyncze, pełne, średnie i Warda.</span></div></a>
   </div></section>
 
+  <section class="lecture-block"><h2>Wykład 7</h2><div class="list">
+    <a class="item" href="qlearning.html"><canvas data-thumb="qlearning"></canvas><div><strong>Q-learning w świecie kratowym</strong><span>Aktualizacja Q krok po kroku, eksploracja ε, SARSA a Q-learning na klifie, iteracja wartości, własne plansze.</span></div></a>
+  </div></section>
+
   <section class="lecture-block"><h2>Przekrojowo (wykłady 3–5)</h2><div class="list">
     <a class="item" href="wymiary.html"><canvas data-thumb="wymiary"></canvas><div><strong>Wiele wymiarów</strong><span>Geometria (objętość, skorupa, bańka gaussowska, ortogonalność), próbkowanie i rzuty, twierdzenie Covera, podwójne zejście, punkty siodłowe i przekrój kosztu sieci.</span></div></a>
   </div></section>
 
-  <footer>Algorytmy (perceptron, gradient prosty, regresja logistyczna metodą Newtona, SVM algorytmem SMO, drzewo CART, las losowy, k-NN, MLP z propagacją wsteczną, k-średnich, grupowanie aglomeracyjne) są zaimplementowane w JavaScripcie i sprawdzone z wynikami scikit-learn. Dane są losowane z ustalonym ziarnem, więc „Losuj ponownie” daje te same zbiory na każdym komputerze.</footer>
+  <footer>Algorytmy (perceptron, gradient prosty, regresja logistyczna metodą Newtona, SVM algorytmem SMO, drzewo CART, las losowy, k-NN, MLP z propagacją wsteczną, k-średnich, grupowanie aglomeracyjne, iteracja wartości, Q-learning i SARSA) są zaimplementowane w JavaScripcie i sprawdzone z wynikami scikit-learn. Dane są losowane z ustalonym ziarnem, więc „Losuj ponownie” daje te same zbiory na każdym komputerze.</footer>
 </div>
 <script>
 // ---- Wspólne narzędzia interfejsu i rysowania
@@ -792,6 +796,19 @@ document.querySelectorAll("canvas[data-thumb]").forEach(cv => {
         g.strokeStyle = COL.muted; g.beginPath(); g.moveTo(xs(2), lv(0.7)); g.lineTo(xs(7), lv(0.7)); g.moveTo(xs(4.5), lv(0.7)); g.lineTo(xs(4.5), lv(1)); g.lineTo(xs(12), lv(1)); g.stroke();
         g.strokeStyle = COL.acc; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(W * 0.04, lv(0.5)); g.lineTo(W * 0.96, lv(0.5)); g.stroke(); g.setLineDash([]);
       }
+    } else if (t === "qlearning") {
+      const g = P.ctx, nc = 4, nr = 3, cs = Math.min(P.W / nc, P.H / nr) * 0.9, ox = (P.W - cs * nc) / 2, oy = (P.H - cs * nr) / 2;
+      const V = [[0.81, 0.87, 0.92, "+"], [0.76, "#", 0.66, "-"], [0.71, 0.66, 0.61, 0.39]], pol = ["→→→", "↑ ↑", "↑←←←"];
+      const D = { "↑": [0, -1], "→": [1, 0], "←": [-1, 0] };
+      V.forEach((row, r) => row.forEach((v, c) => {
+        const x = ox + c * cs, y = oy + r * cs;
+        g.fillStyle = v === "+" ? "#BBF7D0" : v === "-" ? "#FECACA" : v === "#" ? "#9C98B0" : `rgba(37,99,235,${0.15 + 0.6 * v})`; g.fillRect(x, y, cs, cs);
+        g.strokeStyle = COL.ink; g.lineWidth = 1; g.strokeRect(x, y, cs, cs);
+        const ch = pol[r][c]; if (typeof v === "number" && D[ch]) { const [dx, dy] = D[ch], cx = x + cs / 2, cy = y + cs / 2, l = cs * 0.22;
+          g.strokeStyle = g.fillStyle = COL.ink; g.lineWidth = 1.6; g.beginPath(); g.moveTo(cx - dx * l, cy - dy * l); g.lineTo(cx + dx * l, cy + dy * l); g.stroke();
+          g.beginPath(); g.moveTo(cx + dx * l * 1.5, cy + dy * l * 1.5); g.lineTo(cx + dx * l - dy * l * 0.5, cy + dy * l - dx * l * 0.5); g.lineTo(cx + dx * l + dy * l * 0.5, cy + dy * l + dx * l * 0.5); g.closePath(); g.fill(); }
+      }));
+      g.fillStyle = COL.acc; g.beginPath(); g.arc(ox + cs * 0.5, oy + cs * 2.5, cs * 0.13, 0, 7); g.fill();
     } else if (t === "kernel") {
       const d = ML.gen.xor(60, 3), m = ML.smo(d, 10, ML.kernels.rbf(1));
       const f = (x, y) => m.decision({ x, y }); P.heat(f, v => tint(v, 1.6), 3); P.contour(P.sample(f, 50), 0, { width: 1.6 }); d.forEach(p => P.point(p, { r: 3 }));
